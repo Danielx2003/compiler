@@ -5,88 +5,126 @@
 #include <string.h>
 #include <stdio.h>
 
-// return 42;
-// return "hello world"
-// RET, SMARK_START, EXPR, SMARK_END
-
-static void add_token_to_list(struct token_list_t *tokens, struct token_t *new_token)
+static void add_token_to_list(struct token_list_t *lexer_output, struct token_t *new_token)
 {
-  if (tokens->idx >= tokens->len) // Increase size
+  if (lexer_output->cur_idx >= lexer_output->total_tokens) // Increase size
   {
-    tokens->token_list = realloc(tokens->token_list, tokens->len * 2);
+    lexer_output->tokens = realloc(lexer_output->tokens, lexer_output->total_tokens * 2);
   }
 
   memcpy(
-      &tokens->token_list[tokens->idx], 
-      new_token, 
+      &lexer_output->tokens[lexer_output->cur_idx], 
+      new_token,
       sizeof(struct token_t)
   );
+  memset(new_token, 0, sizeof(struct token_t));
 
-  tokens->idx += 1;
+  lexer_output->cur_idx += 1;
 }
 
 static enum token_type get_token_type_from_text(char *buf)
 {
-  if (strcmp(buf, "return") == 0) { return RETURN; }
+  if (strcmp(buf, "return") == 0) { return TOKEN_TYPE_RETURN; }
 
-  return IDENTIFIER;  
+  switch(buf[0])
+  {
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9':
+    case '0':
+      return TOKEN_TYPE_CONSTANT; 
+    case '+':
+      return TOKEN_TYPE_ADD;
+    case '-':
+      return TOKEN_TYPE_SUB;
+  }
+
+  return TOKEN_TYPE_ID;  
 }
 
-struct token_t* tokenize_stream(char *input, size_t input_size, size_t *token_size)
+struct token_t* tokenize_stream(
+    struct token_list_t *lexer_output,
+    char *input,
+    size_t input_size,
+    size_t *token_size
+)
 {
-  struct token_list_t tokens = {0};
   int strt = 0;
   int prev = 0;
   int cur = 0;
   char *text;
   struct token_t token = {0};
 
-  tokens.token_list = (struct token_t*)calloc(16, sizeof(struct token_t));
-  tokens.len = 16;
-  tokens.idx = 0;
-  
-  /*
-  do we split on string, or take it char by char?
+  lexer_output->tokens = (struct token_t*)calloc(16, sizeof(struct token_t));
+  lexer_output->total_tokens = 16;
+  lexer_output->cur_idx = 0;
 
-  char by char:
-  - terminate current buffer on deliminator
-  - allocate buf space between cur and strt
-  - pattern match this token (or switch statement etc)
-    - hashmap would be ideal but not in the std lib
+
+  /* 5 + 4+3;*/
+  /*
+  
+  5 - strt = 0, cur = 0, prev = ?
+  SPACE - strt = 0, cur = 1, prev = 0? -> results in no buffer flush
+  4 - strt = 2, cur = 2, prev = 1
+  + - strt = 2, cur = 3, prev = 2 -> no buffer flush
+
    */
 
   while (cur < input_size)
   {
     switch(input[cur])
     {
-      case ' ':
-        token.text_len = prev+1-strt;
-        memcpy(token.text, &input[strt], prev+1-strt);
-        token.type = get_token_type_from_text(token.text);
+      case '+':
+        if (cur-strt > 0)
+        {
+          token.text_len = cur-strt;
+          memcpy(token.text, &input[strt], cur-strt);
+          token.type = get_token_type_from_text(token.text);
 
-        add_token_to_list(&tokens, &token);
+          add_token_to_list(lexer_output, &token);
+        }
 
-        memset(&token, 0, sizeof(token));
-
-        strt = cur++;
-        break;
-      case ';':
-        token.text_len = prev+1-strt;
-        memcpy(token.text, &input[strt], prev+1-strt);
-        token.type = get_token_type_from_text(token.text);
-
-        add_token_to_list(&tokens, &token);
-
-        memset(&token, 0, sizeof(token));
-
-        token.type = SEMI_COLON;
+        token.type = TOKEN_TYPE_ADD;
         token.text_len = 1;
         memcpy(token.text, &input[cur], 1);
-        add_token_to_list(&tokens, &token);
+        add_token_to_list(lexer_output, &token);
 
-        memset(&token, 0, sizeof(token));
+        strt = cur+1;
+        break;
+      case ' ':
+        if (cur-strt > 0)
+        {
+          token.text_len = cur-strt;
+          memcpy(token.text, &input[strt], cur-strt);
+          token.type = get_token_type_from_text(token.text);
 
-        strt = cur++;
+          add_token_to_list(lexer_output, &token);
+        }
+
+        strt = cur+1;
+        break;
+      case ';':
+        if (cur-strt > 0)
+        {
+          token.text_len = cur-strt;
+          memcpy(token.text, &input[strt], cur-strt);
+          token.type = get_token_type_from_text(token.text);
+
+          add_token_to_list(lexer_output, &token);
+        }
+
+        token.type = TOKEN_TYPE_SEMI_COLON;
+        token.text_len = 1;
+        memcpy(token.text, &input[cur], 1);
+        add_token_to_list(lexer_output, &token);
+
+        strt = cur+1;
         break;
       default:
        break; 
@@ -95,13 +133,8 @@ struct token_t* tokenize_stream(char *input, size_t input_size, size_t *token_si
     cur++;
   }
 
-  
-  printf("Extracted Tokens:\n");
-  for (int i = 0; i < tokens.idx; i++)
-  {
-    printf("Token: %d Text: %s\n", tokens.token_list[i].type, tokens.token_list[i].text);
-  }
-  printf("---\n");
+  token.type = TOKEN_TYPE_EOF;
+  add_token_to_list(lexer_output, &token);
 
-  return tokens.token_list; // update to ret just tokens
+  return lexer_output->tokens;
 }
