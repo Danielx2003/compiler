@@ -48,7 +48,7 @@ static enum token_type get_token_type_from_text(char *buf)
   return TOKEN_TYPE_ID;  
 }
 
-struct token_t* tokenize_stream(
+int tokenize_stream(
     struct token_list_t *lexer_output,
     char *input,
     size_t input_size,
@@ -58,23 +58,13 @@ struct token_t* tokenize_stream(
   int strt = 0;
   int prev = 0;
   int cur = 0;
+  int num_lines = 0;
   char *text;
   struct token_t token = {0};
 
   lexer_output->tokens = (struct token_t*)calloc(16, sizeof(struct token_t));
   lexer_output->total_tokens = 16;
   lexer_output->cur_idx = 0;
-
-
-  /* 5 + 4+3;*/
-  /*
-  
-  5 - strt = 0, cur = 0, prev = ?
-  SPACE - strt = 0, cur = 1, prev = 0? -> results in no buffer flush
-  4 - strt = 2, cur = 2, prev = 1
-  + - strt = 2, cur = 3, prev = 2 -> no buffer flush
-
-   */
 
   while (cur < input_size)
   {
@@ -110,6 +100,7 @@ struct token_t* tokenize_stream(
         strt = cur+1;
         break;
       case ';':
+        num_lines++;
         if (cur-strt > 0)
         {
           token.text_len = cur-strt;
@@ -136,5 +127,5 @@ struct token_t* tokenize_stream(
   token.type = TOKEN_TYPE_EOF;
   add_token_to_list(lexer_output, &token);
 
-  return lexer_output->tokens;
+  return num_lines;
 }
