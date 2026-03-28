@@ -44,8 +44,7 @@ void parse_lexer_tokens(
 );
 
 void peek_token(
-    struct token_list_t *lexer_output,
-    struct token_t *token
+    struct token_list_t *lexer_output
 );
 
-void consume_token(struct token_list_t *lexer_output, struct token_t *token);
+void consume_token(struct token_list_t *lexer_output);
