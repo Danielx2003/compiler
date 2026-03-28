@@ -3,9 +3,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 static struct token_t cur_token = {0};
 int cur_line = 0;
+bool error = false;
 
 static void print_ast_term(struct ast_term *term, int level)
 {
@@ -103,6 +105,7 @@ void parse_terminator(struct token_list_t *lexer_output)
   }
 
   printf("Expecting semi colon. Received %d\n", cur_token.type);
+  error = true;
   while (
       cur_token.type != TOKEN_TYPE_ID
       && cur_token.type != TOKEN_TYPE_CONSTANT
@@ -139,6 +142,7 @@ void parse_term(
   }
 
   printf("Error: Expecting ID or CONSTANT . Received %d\n", cur_token.type);
+  error = true;
   while (cur_token.type != TOKEN_TYPE_ADD
       && cur_token.type != TOKEN_TYPE_SEMI_COLON)
   {
@@ -210,7 +214,7 @@ void parse_lexer_tokens(struct token_list_t *lexer_output, int num_lines)
   
   printf("--- Done ---\n");
 
-  print_ast_root(&root);
+  if (!error) { print_ast_root(&root); }
 }
 
 void peek_token(
