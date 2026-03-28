@@ -10,10 +10,10 @@ int main()
   lexer_output.cur_idx = 0;
 
   size_t token_list_len;
-  tokenize_stream(
+  int num_lines = tokenize_stream(
       &lexer_output,
-      "5+     xyz + 3 ;",
-      sizeof("5+     xyz + 3 ;"),
+      "5 + 4 + ;3;",
+      sizeof("5 + 4 + ;3;"),
       &token_list_len
   );
 
@@ -24,5 +24,5 @@ int main()
   }                                                                                          
   printf("---\n");
 
-  parse_lexer_tokens(&lexer_output);
+  parse_lexer_tokens(&lexer_output, num_lines);
 }
