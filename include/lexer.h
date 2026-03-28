@@ -27,7 +27,7 @@ struct token_list_t {
 };
 
 // Tokenizes a whole input stream, returning an array of tokens
-struct token_t* tokenize_stream(
+int tokenize_stream(
     struct token_list_t *lexer_output,
     char *input,
     size_t input_size,
