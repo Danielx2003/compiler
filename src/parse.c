@@ -122,16 +122,15 @@ static void print_ast_root(struct ast_root *root)
 
 }
 
-void parse_terminator(struct token_list_t *lexer_output)
+bool parse_terminator(struct token_list_t *lexer_output)
 {
   // Anchor Set:
   // TOKEN_TYPE_SEMI_COLON
   
   if (cur_token.type == TOKEN_TYPE_SEMI_COLON)
   {
-    printf("%s\n", cur_token.text);
     consume_token(lexer_output);
-    return;
+    return true;
   }
 
   printf("Expecting semi colon. Received %d\n", cur_token.type);
@@ -144,10 +143,11 @@ void parse_terminator(struct token_list_t *lexer_output)
     consume_token(lexer_output);
   }
 
-  printf("Found sync token in parse_terminator\n");
+  if (cur_token.type == TOKEN_TYPE_EOF) { return false; }
+  return true;
 }
 
-void parse_term(
+bool parse_term(
     struct token_list_t *lexer_output,
     struct ast_term *term
 )
@@ -159,17 +159,15 @@ void parse_term(
   {
     term->type = AST_TERM_TYPE_ID;
     strcpy(term->id.text, cur_token.text);
-    printf("%s\n", term->id.text); 
     consume_token(lexer_output);
-    return;
+    return true;
   }
   else if (cur_token.type == TOKEN_TYPE_CONSTANT)
   {
     term->type = AST_TERM_TYPE_CONSTANT;
     strcpy(term->id.text, cur_token.text);
-    printf("%s\n", term->id.text); 
     consume_token(lexer_output);
-    return;
+    return true;
   }
 
   printf("Error: Expecting ID or CONSTANT . Received %d\n", cur_token.type);
@@ -181,17 +179,18 @@ void parse_term(
     consume_token(lexer_output);
   }
 
-  printf("Found sync token in parse_term\n");
+  if (cur_token.type == TOKEN_TYPE_EOF) { return false; }
+  return true;
 }
 
-void parse_expr_prime(
+bool parse_expr_prime(
     struct token_list_t *lexer_output,
     struct ast_expr_prime *expr_prime
 )
 {
   if (expr_prime == NULL)
   {
-    return;
+    return true;
   }
 
   expr_prime->type = AST_EXPR_PRIME_TYPE_EMPTY;
@@ -201,48 +200,58 @@ void parse_expr_prime(
   {
     expr_prime->type = AST_EXPR_PRIME_TYPE_EXPR;
 
-    printf("%s\n", cur_token.text); 
     consume_token(lexer_output);
-    parse_term(lexer_output, &expr_prime->term);
-    parse_expr_prime(lexer_output, expr_prime->expr_prime);
+    if (!parse_term(lexer_output, &expr_prime->term)
+        || !parse_expr_prime(lexer_output, expr_prime->expr_prime))
+    {
+      free(expr_prime->expr_prime);
+      expr_prime->expr_prime = NULL;
+      return false;
+    }
   }
   else
   {
-    printf("Freeing expr_prime\n");
     free(expr_prime->expr_prime);
     expr_prime->expr_prime = NULL;
   }
+
+  return true;
 }
 
 
-void parse_expr(
+bool parse_expr(
     struct token_list_t *lexer_output,
     struct ast_expr *expr
 )
 {
-  parse_term(lexer_output, &expr->term);
-  printf("parsing expr prime\n");
-  parse_expr_prime(lexer_output, &expr->expr_prime);
+  if (!parse_term(lexer_output, &expr->term)
+      || !parse_expr_prime(lexer_output, &expr->expr_prime))
+  {
+    return false;
+  }
+
+  return true;
 }
 
 
-void parse_equals(struct token_list_t *lexer_output)
+bool parse_equals(struct token_list_t *lexer_output)
 {
   if (cur_token.type == TOKEN_TYPE_EQUAL)
   {
     // Handle
     consume_token(lexer_output);
-    return;
+    return true;
   }
   else
   {
     printf("Error: Expected =\n");
   }
 
+  return true;
   // Otherwise consume until we reach the anchor set / FOLLOW(=)
 }
 
-void parse_assignment(
+bool parse_assignment(
     struct token_list_t *lexer_output,
     struct ast_assignment *assignment)
 {
@@ -252,14 +261,19 @@ void parse_assignment(
   {
     assignment->type = AST_TYPE_INT;
     consume_token(lexer_output);
-    parse_term(lexer_output, &assignment->term); 
-    parse_equals(lexer_output);
-    parse_expr(lexer_output, &assignment->expr);
+    if (!parse_term(lexer_output, &assignment->term)
+        || !parse_equals(lexer_output)
+        || !parse_expr(lexer_output, &assignment->expr))
+    {
+      return false;
+    }
   }
   else
   {
     printf("Error: expected type");
   }
+
+  return true;
 }
 
 void parse_line(
@@ -318,9 +332,8 @@ void consume_token(
 
 void free_ast_expr_prime(struct ast_expr_prime *expr_prime)
 {
-  if (expr_prime == NULL) { return; }
+  if (!expr_prime->expr_prime) { return; }
   free_ast_expr_prime(expr_prime->expr_prime);
-
   free(expr_prime->expr_prime);
 }
 
@@ -341,9 +354,10 @@ void free_ast_line(struct ast_line *line)
 
 void free_ast(struct ast_root *root, int num_lines)
 {
-  for (int i=0; i<num_lines; i++)
+  for (int i=0; i<root->num_lines; i++)
   {
     free_ast_line(&root->lines[i]);
   }
+
   free(root->lines);
 }
