@@ -81,11 +81,11 @@ struct ast_root {
   size_t num_lines;
 };
 
-void free_ast(struct ast_root *root, int num_lines);
+void free_ast(struct ast_root *root);
 
 void parse_lexer_tokens(
   struct token_list_t *lexer_output,
-  int num_lines
+  int nun_lines
 );
 
 void peek_token(
