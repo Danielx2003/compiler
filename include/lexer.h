@@ -11,6 +11,8 @@ enum token_type {
   TOKEN_TYPE_CONSTANT,
   TOKEN_TYPE_ADD, // Maybe convert to arithmetic
   TOKEN_TYPE_SUB,
+  TOKEN_TYPE_INT, // Maybe Type
+  TOKEN_TYPE_EQUAL,
   TOKEN_TYPE_EOF
 };
 

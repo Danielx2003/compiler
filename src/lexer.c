@@ -25,6 +25,7 @@ static void add_token_to_list(struct token_list_t *lexer_output, struct token_t 
 static enum token_type get_token_type_from_text(char *buf)
 {
   if (strcmp(buf, "return") == 0) { return TOKEN_TYPE_RETURN; }
+  if (strcmp(buf, "int") == 0) { return TOKEN_TYPE_INT; }
 
   switch(buf[0])
   {
@@ -43,6 +44,8 @@ static enum token_type get_token_type_from_text(char *buf)
       return TOKEN_TYPE_ADD;
     case '-':
       return TOKEN_TYPE_SUB;
+    case '=':
+      return TOKEN_TYPE_EQUAL;
   }
 
   return TOKEN_TYPE_ID;  
