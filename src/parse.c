@@ -31,7 +31,7 @@ static void print_ast_expr_prime(struct ast_expr_prime *expr_prime, int level)
   if (expr_prime == NULL) { return; }
 
 
-  if (expr_prime->type == AST_EXPR_PRIME_TYPE_EXPR)
+  if (expr_prime->type == AST_EXPR_PRIME_TYPE_TERM_EXPR)
   {
     for (int i=0; i<level; i++)
     {
@@ -180,24 +180,18 @@ bool parse_term(
 
 bool parse_expr_prime(
     struct token_list_t *lexer_output,
-    struct ast_expr_prime *expr_prime
+    struct ast_expr_prime *expr_prime,
+    struct ast_expr_prime *expr_prime_parent
 )
 {
-  if (expr_prime == NULL)
-  {
-    return true;
-  }
-
-  expr_prime->type = AST_EXPR_PRIME_TYPE_EMPTY;
-
   if (cur_token.type == TOKEN_TYPE_ADD) // change to be any arithmetic later
   {
-    expr_prime->type = AST_EXPR_PRIME_TYPE_EXPR;
+    expr_prime->type = AST_EXPR_PRIME_TYPE_TERM_EXPR;
     expr_prime->expr_prime = (struct ast_expr_prime*)malloc(sizeof(struct ast_expr_prime));
 
     consume_token(lexer_output);
     if (!parse_term(lexer_output, &expr_prime->term)
-        || !parse_expr_prime(lexer_output, expr_prime->expr_prime))
+        || !parse_expr_prime(lexer_output, expr_prime->expr_prime, expr_prime))
     {
       free(expr_prime->expr_prime);
       expr_prime->expr_prime = NULL;
@@ -206,7 +200,11 @@ bool parse_expr_prime(
   }
   else
   {
-    expr_prime->expr_prime = NULL;
+    expr_prime->type = AST_EXPR_PRIME_TYPE_NULL;
+    if (expr_prime_parent != NULL)
+    {
+      expr_prime_parent->type = AST_EXPR_PRIME_TYPE_TERM_ONLY;
+    }
   }
 
   return true;
@@ -219,7 +217,7 @@ bool parse_expr(
 )
 {
   if (!parse_term(lexer_output, &expr->term)
-      || !parse_expr_prime(lexer_output, &expr->expr_prime))
+      || !parse_expr_prime(lexer_output, &expr->expr_prime, NULL))
   {
     return false;
   }
@@ -278,22 +276,22 @@ void parse_line(
   parse_terminator(lexer_output);
 }
 
-void parse_lexer_tokens(struct token_list_t *lexer_output, int num_lines)
+struct ast_root* parse_lexer_tokens(struct token_list_t *lexer_output, int num_lines)
 {
   // Using the cur_idx produces side effects -> consider a different method later
   
   lexer_output->cur_idx = 0;
-  struct ast_root root = {0};
-  root.num_lines = num_lines;
+  struct ast_root *root = (struct ast_root *)calloc(1, sizeof(struct ast_root));
+  root->num_lines = num_lines;
 
-  root.lines = (struct ast_line *)malloc(sizeof(struct ast_line) * num_lines);
+  root->lines = (struct ast_line *)malloc(sizeof(struct ast_line) * num_lines);
 
   do {
     peek_token(lexer_output);
 
     if (cur_token.type == TOKEN_TYPE_EOF) { printf("at EOF"); continue; }
 
-    parse_line(lexer_output, &root.lines[cur_line]);
+    parse_line(lexer_output, &root->lines[cur_line]);
     cur_line++;
     break;
 
@@ -301,9 +299,10 @@ void parse_lexer_tokens(struct token_list_t *lexer_output, int num_lines)
   
   printf("--- Done ---\n");
 
-  if (!error) { print_ast_root(&root); }
-  else { printf("Syntax error found\n"); }
-  free_ast(&root);
+  // if (!error) { print_ast_root(root); }
+  // else { printf("Syntax error found\n"); }
+  // free_ast(root);
+  return root;
 }
 
 void peek_token(

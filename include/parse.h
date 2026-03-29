@@ -9,8 +9,9 @@ enum ast_node_type {
 };
 
 enum ast_expr_prime_type {
-  AST_EXPR_PRIME_TYPE_EMPTY,
-  AST_EXPR_PRIME_TYPE_EXPR
+  AST_EXPR_PRIME_TYPE_NULL,
+  AST_EXPR_PRIME_TYPE_TERM_EXPR,
+  AST_EXPR_PRIME_TYPE_TERM_ONLY
 };
 
 enum ast_operator_type {
@@ -83,7 +84,7 @@ struct ast_root {
 
 void free_ast(struct ast_root *root);
 
-void parse_lexer_tokens(
+struct ast_root* parse_lexer_tokens(
   struct token_list_t *lexer_output,
   int nun_lines
 );
