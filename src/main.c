@@ -2,6 +2,7 @@
 #include "parse.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
 int main()
 {
@@ -12,8 +13,8 @@ int main()
   size_t token_list_len;
   int num_lines = tokenize_stream(
       &lexer_output,
-      "5 + 4 + ;3;",
-      sizeof("5 + 4 + ;3;"),
+      "int x = 5 + 4",
+      sizeof("int x = 5 + 4"),
       &token_list_len
   );
 
@@ -25,4 +26,6 @@ int main()
   printf("---\n");
 
   parse_lexer_tokens(&lexer_output, num_lines);
+
+  free(lexer_output.tokens);
 }

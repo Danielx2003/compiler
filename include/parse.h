@@ -60,8 +60,19 @@ struct ast_expr {
   struct ast_expr_prime expr_prime;
 };
 
-struct ast_line {
+enum ast_type {
+  // Will introduce family, and other things later -> make it a struct
+  AST_TYPE_INT 
+};
+
+struct ast_assignment {
+  enum ast_type type;
+  struct ast_term term;
   struct ast_expr expr;
+};
+
+struct ast_line {
+  struct ast_assignment assignment;
   // Don't see a need for terminator here
 };
 
@@ -70,9 +81,11 @@ struct ast_root {
   size_t num_lines;
 };
 
+void free_ast(struct ast_root *root);
+
 void parse_lexer_tokens(
   struct token_list_t *lexer_output,
-  int num_lines
+  int nun_lines
 );
 
 void peek_token(
