@@ -1,5 +1,6 @@
 #include "lexer.h"
 #include "parse.h"
+#include "codegen.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,8 +14,8 @@ int main()
   size_t token_list_len;
   int num_lines = tokenize_stream(
       &lexer_output,
-      "int x = 5 + 4",
-      sizeof("int x = 5 + 4"),
+      "int x = 5 + 4 + 3 + 2 + 1 + y;",
+      sizeof("int x = 5 + 4 + 3 + 2 + 1 + y;"),
       &token_list_len
   );
 
@@ -25,7 +26,9 @@ int main()
   }                                                                                          
   printf("---\n");
 
-  parse_lexer_tokens(&lexer_output, num_lines);
+  struct ast_root *root = parse_lexer_tokens(&lexer_output, num_lines);
+  cgen_ast(root);
 
+  free(root);
   free(lexer_output.tokens);
 }
