@@ -5,10 +5,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-/*
- * [ ] Update FOLLOW/SYNC sets to include EOF
- */
-
 static struct token_t cur_token = {0};
 int cur_line = 0;
 bool error = false;
@@ -119,7 +115,6 @@ static void print_ast_root(struct ast_root *root)
     printf("Line %d:\n", i+1);
     print_ast_line(&root->lines[i]);
   } 
-
 }
 
 bool parse_terminator(struct token_list_t *lexer_output)
@@ -194,11 +189,11 @@ bool parse_expr_prime(
   }
 
   expr_prime->type = AST_EXPR_PRIME_TYPE_EMPTY;
-  expr_prime->expr_prime = (struct ast_expr_prime*)malloc(sizeof(struct ast_expr_prime));
 
   if (cur_token.type == TOKEN_TYPE_ADD) // change to be any arithmetic later
   {
     expr_prime->type = AST_EXPR_PRIME_TYPE_EXPR;
+    expr_prime->expr_prime = (struct ast_expr_prime*)malloc(sizeof(struct ast_expr_prime));
 
     consume_token(lexer_output);
     if (!parse_term(lexer_output, &expr_prime->term)
@@ -211,7 +206,6 @@ bool parse_expr_prime(
   }
   else
   {
-    free(expr_prime->expr_prime);
     expr_prime->expr_prime = NULL;
   }
 
@@ -238,7 +232,6 @@ bool parse_equals(struct token_list_t *lexer_output)
 {
   if (cur_token.type == TOKEN_TYPE_EQUAL)
   {
-    // Handle
     consume_token(lexer_output);
     return true;
   }
@@ -310,7 +303,7 @@ void parse_lexer_tokens(struct token_list_t *lexer_output, int num_lines)
 
   if (!error) { print_ast_root(&root); }
   else { printf("Syntax error found\n"); }
-  free_ast(&root, num_lines);
+  free_ast(&root);
 }
 
 void peek_token(
@@ -352,7 +345,7 @@ void free_ast_line(struct ast_line *line)
   free_ast_assignment(&line->assignment);
 }
 
-void free_ast(struct ast_root *root, int num_lines)
+void free_ast(struct ast_root *root)
 {
   for (int i=0; i<root->num_lines; i++)
   {
