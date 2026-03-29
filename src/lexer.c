@@ -130,5 +130,7 @@ int tokenize_stream(
   token.type = TOKEN_TYPE_EOF;
   add_token_to_list(lexer_output, &token);
 
+  if (num_lines == 0) { num_lines++; } 
+
   return num_lines;
 }
