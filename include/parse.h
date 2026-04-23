@@ -110,12 +110,12 @@ struct ast_root {
 void free_ast(struct ast_root *root);
 
 struct ast_root* parse_lexer_tokens(
-  struct token_list_t *lexer_output,
+  struct lex_token_list_t *lexer_output,
   int nun_lines
 );
 
 void peek_token(
-    struct token_list_t *lexer_output
+    struct lex_token_list_t *lexer_output
 );
 
-void consume_token(struct token_list_t *lexer_output);
+void consume_token(struct lex_token_list_t *lexer_output);

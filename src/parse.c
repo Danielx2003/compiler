@@ -5,16 +5,16 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-static struct token_t cur_token = {0};
+static struct lex_token_t cur_token = {0};
 int cur_line = 0;
 bool error = false;
 
-bool parse_terminator(struct token_list_t *lexer_output)
+bool parse_terminator(struct lex_token_list_t *lexer_output)
 {
   // Anchor Set:
   // TOKEN_TYPE_SEMI_COLON
   
-  if (cur_token.type == TOKEN_TYPE_SEMI_COLON)
+  if (cur_token.type == LEX_TOKEN_SEMI_COLON)
   {
     consume_token(lexer_output);
     return true;
@@ -23,33 +23,33 @@ bool parse_terminator(struct token_list_t *lexer_output)
   printf("Expecting semi colon. Received %*s\n", cur_token.text_len, cur_token.text);
   error = true;
   while (
-      cur_token.type != TOKEN_TYPE_ID
-      && cur_token.type != TOKEN_TYPE_CONSTANT
-      && cur_token.type != TOKEN_TYPE_EOF)
+      cur_token.type != LEX_TOKEN_ID
+      && cur_token.type != LEX_TOKEN_CONSTANT
+      && cur_token.type != LEX_TOKEN_EOF)
   {
     consume_token(lexer_output);
   }
 
-  if (cur_token.type == TOKEN_TYPE_EOF) { return false; }
+  if (cur_token.type == LEX_TOKEN_EOF) { return false; }
   return true;
 }
 
 bool parse_term(
-    struct token_list_t *lexer_output,
+    struct lex_token_list_t *lexer_output,
     struct ast_term *term
 )
 {
   // Anchor Set:
   // TOKEN_TYPE_ADD, TOKEN_TYPE_SEMI_COLON -> we used id and constatnt before...
 
-  if (cur_token.type == TOKEN_TYPE_ID)
+  if (cur_token.type == LEX_TOKEN_ID)
   {
     term->type = AST_TERM_TYPE_ID;
     strcpy(term->id.text, cur_token.text);
     consume_token(lexer_output);
     return true;
   }
-  else if (cur_token.type == TOKEN_TYPE_CONSTANT)
+  else if (cur_token.type == LEX_TOKEN_CONSTANT)
   {
     term->type = AST_TERM_TYPE_CONSTANT;
     strcpy(term->id.text, cur_token.text);
@@ -59,24 +59,24 @@ bool parse_term(
 
   printf("Error: Expecting ID or CONSTANT . Received %d\n", cur_token.type);
   error = true;
-  while (cur_token.type != TOKEN_TYPE_ADD
-      && cur_token.type != TOKEN_TYPE_SEMI_COLON
-      && cur_token.type != TOKEN_TYPE_EOF)
+  while (cur_token.type != LEX_TOKEN_ADD
+      && cur_token.type != LEX_TOKEN_SEMI_COLON
+      && cur_token.type != LEX_TOKEN_EOF)
   {
     consume_token(lexer_output);
   }
 
-  if (cur_token.type == TOKEN_TYPE_EOF) { return false; }
+  if (cur_token.type == LEX_TOKEN_EOF) { return false; }
   return true;
 }
 
 bool parse_expr_prime(
-    struct token_list_t *lexer_output,
+    struct lex_token_list_t *lexer_output,
     struct ast_expr_prime *expr_prime,
     struct ast_expr_prime *expr_prime_parent
 )
 {
-  if (cur_token.type == TOKEN_TYPE_ADD) // change to be any arithmetic later
+  if (cur_token.type == LEX_TOKEN_ADD) // change to be any arithmetic later
   {
     expr_prime->type = AST_EXPR_PRIME_TYPE_TERM_EXPR;
     expr_prime->expr_prime = (struct ast_expr_prime*)malloc(sizeof(struct ast_expr_prime));
@@ -103,7 +103,7 @@ bool parse_expr_prime(
 }
 
 bool parse_expr(
-    struct token_list_t *lexer_output,
+    struct lex_token_list_t *lexer_output,
     struct ast_expr *expr
 )
 {
@@ -117,9 +117,9 @@ bool parse_expr(
 }
 
 
-bool parse_equals(struct token_list_t *lexer_output)
+bool parse_equals(struct lex_token_list_t *lexer_output)
 {
-  if (cur_token.type == TOKEN_TYPE_EQUAL)
+  if (cur_token.type == LEX_TOKEN_EQUAL)
   {
     consume_token(lexer_output);
     return true;
@@ -134,12 +134,12 @@ bool parse_equals(struct token_list_t *lexer_output)
 }
 
 bool parse_assignment(
-    struct token_list_t *lexer_output,
+    struct lex_token_list_t *lexer_output,
     struct ast_assignment *assignment)
 {
   // Work out anchor set / FOLLOW(assignment)
 
-  if (cur_token.type == TOKEN_TYPE_INT)
+  if (cur_token.type == LEX_TOKEN_INT)
   {
     assignment->type = AST_TYPE_INT;
     consume_token(lexer_output);
@@ -161,19 +161,19 @@ bool parse_assignment(
 }
 
 bool parse_op(
-   struct token_list_t *lexer_output,
+   struct lex_token_list_t *lexer_output,
    enum ast_operator_type *op
 )
 {
   switch (cur_token.type)
   {
-    case TOKEN_TYPE_EQUIV:
+    case LEX_TOKEN_EQUIV:
       *op = AST_OPERATOR_TYPE_EQUIV;
       break;
-    case TOKEN_TYPE_LESS_THAN:
+    case LEX_TOKEN_LESS_THAN:
       *op = AST_OPERATOR_TYPE_LESS_THAN;
       break;
-    case TOKEN_TYPE_GREATER_THAN:
+    case LEX_TOKEN_GREATER_THAN:
       *op = AST_OPERATOR_TYPE_GREATER_THAN;
       break;
     default:
@@ -185,7 +185,7 @@ bool parse_op(
 }
 
 bool parse_condition(
-  struct token_list_t *lexer_output,
+  struct lex_token_list_t *lexer_output,
   struct ast_condition *condition
 )
 {
@@ -198,7 +198,7 @@ bool parse_condition(
 
   printf("%s == %s", condition->left_term.id.text, condition->right_term.id.text);
 
-  if (cur_token.type == TOKEN_TYPE_CLOSE_BRACKET)
+  if (cur_token.type == LEX_TOKEN_CLOSE_BRACKET)
   {
     consume_token(lexer_output);
     return true;
@@ -209,11 +209,11 @@ bool parse_condition(
 }
 
 bool parse_condition_body(
-  struct token_list_t *lexer_output,
+  struct lex_token_list_t *lexer_output,
   struct ast_condition_body *body
 )
 {
-  if (cur_token.type == TOKEN_TYPE_OPEN_SCOPE) 
+  if (cur_token.type == LEX_TOKEN_OPEN_SCOPE) 
   {
     consume_token(lexer_output);
     parse_assignment(lexer_output, &body->assignment);
@@ -224,7 +224,7 @@ bool parse_condition_body(
     // do a while loop until we reach a follow set element
   }
 
-  if (cur_token.type == TOKEN_TYPE_CLOSE_SCOPE)
+  if (cur_token.type == LEX_TOKEN_CLOSE_SCOPE)
   {
     consume_token(lexer_output);
   }
@@ -236,11 +236,11 @@ bool parse_condition_body(
 }
 
 bool parse_if(
-  struct token_list_t *lexer_output,
+  struct lex_token_list_t *lexer_output,
   struct ast_conditional *cond
 )
 {
-  if (cur_token.type == TOKEN_TYPE_OPEN_BRACKET) 
+  if (cur_token.type == LEX_TOKEN_OPEN_BRACKET) 
   {
     consume_token(lexer_output);
     parse_condition(lexer_output, &cond->condition);
@@ -254,11 +254,11 @@ bool parse_if(
 }
 
 void parse_line(
-    struct token_list_t *lexer_output,
+    struct lex_token_list_t *lexer_output,
     struct ast_line *line
 )
 {
-  if (cur_token.type == TOKEN_TYPE_IF)
+  if (cur_token.type == LEX_TOKEN_IF)
   {
     line->type = AST_LINE_CONDITIONAL;
     consume_token(lexer_output);
@@ -271,7 +271,7 @@ void parse_line(
   }
 }
 
-struct ast_root* parse_lexer_tokens(struct token_list_t *lexer_output, int num_lines)
+struct ast_root* parse_lexer_tokens(struct lex_token_list_t *lexer_output, int num_lines)
 {
   // Using the cur_idx produces side effects -> consider a different method later
   
@@ -284,11 +284,11 @@ struct ast_root* parse_lexer_tokens(struct token_list_t *lexer_output, int num_l
   do {
     peek_token(lexer_output);
 
-    if (cur_token.type == TOKEN_TYPE_EOF) { printf("at EOF"); continue; }
+    if (cur_token.type == LEX_TOKEN_EOF) { printf("at EOF"); continue; }
 
     parse_line(lexer_output, &root->lines[cur_line]);
     cur_line++;
-  } while (cur_token.type != TOKEN_TYPE_EOF);
+  } while (cur_token.type != LEX_TOKEN_EOF);
   
   printf("--- Done ---\n");
 
@@ -299,14 +299,14 @@ struct ast_root* parse_lexer_tokens(struct token_list_t *lexer_output, int num_l
 }
 
 void peek_token(
-    struct token_list_t *lexer_output
+    struct lex_token_list_t *lexer_output
 )
 {
-  memcpy(&cur_token, &lexer_output->tokens[lexer_output->cur_idx], sizeof(struct token_t));
+  memcpy(&cur_token, &lexer_output->tokens[lexer_output->cur_idx], sizeof(struct lex_token_t));
 }
 
 void consume_token(
-    struct token_list_t *lexer_output
+    struct lex_token_list_t *lexer_output
 )
 {
   if (lexer_output->cur_idx > lexer_output->total_tokens) { return; }

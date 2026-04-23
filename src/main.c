@@ -6,20 +6,20 @@
 #include <stdlib.h>
 
 struct compiler {
-  struct token_list_t lexer_output;
+  struct lex_token_list_t lexer_output;
   struct ast_root root;
 };
 
 int main()
 {
-  struct token_list_t lexer_output = {0};
+  struct lex_token_list_t lexer_output = {0};
   lexer_output.total_tokens = 256;
   lexer_output.cur_idx = 0;
 
- char text[256] = "int x = 5; if (x == 5) { int y = 5; }";
+  char text[256] = "int x = 5; if (x == 5) { int y = 5; }";
 
   size_t token_list_len;
-  int num_lines = tokenize_stream(
+  int num_lines = lex_tokenize_stream(
       &lexer_output,
       text,
       sizeof(text),
@@ -33,8 +33,8 @@ int main()
   }
   printf("\n");
  
-  struct ast_root *root = parse_lexer_tokens(&lexer_output, num_lines);
-  ir_ast(root);
-  free(root);
+  // struct ast_root *root = parse_lexer_tokens(&lexer_output, num_lines);
+  // ir_ast(root);
+  // free(root);
   free(lexer_output.tokens); 
 }

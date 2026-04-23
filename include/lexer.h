@@ -2,47 +2,43 @@
 
 #pragma once
 
-enum token_type {
-  TOKEN_TYPE_TYPE,
-  TOKEN_TYPE_ID,
-  TOKEN_TYPE_SEMI_COLON,
-  TOKEN_TYPE_WHIESPACE,
-  TOKEN_TYPE_RETURN,
-  TOKEN_TYPE_CONSTANT,
-  TOKEN_TYPE_ADD, // Maybe convert to arithmetic
-  TOKEN_TYPE_SUB,
-  TOKEN_TYPE_INT, // Maybe Type
-  TOKEN_TYPE_EQUAL, // =
-  TOKEN_TYPE_IF,
-  TOKEN_TYPE_OPEN_SCOPE, // {
-  TOKEN_TYPE_CLOSE_SCOPE, // }
-  TOKEN_TYPE_OPEN_BRACKET, // (
-  TOKEN_TYPE_CLOSE_BRACKET, // )
-  TOKEN_TYPE_EQUIV, // ==
-  TOKEN_TYPE_LESS_THAN, // <
-  TOKEN_TYPE_GREATER_THAN, // >
-  TOKEN_TYPE_EOF
+enum lex_token_type {
+  LEX_TOKEN_TYPE,
+  LEX_TOKEN_ID,
+  LEX_TOKEN_SEMI_COLON,
+  LEX_TOKEN_WHIESPACE,
+  LEX_TOKEN_RETURN,
+  LEX_TOKEN_CONSTANT,
+  LEX_TOKEN_ADD, // Maybe convert to arithmetic
+  LEX_TOKEN_SUB,
+  LEX_TOKEN_INT, // Maybe Type
+  LEX_TOKEN_EQUAL, // =
+  LEX_TOKEN_IF,
+  LEX_TOKEN_OPEN_SCOPE, // {
+  LEX_TOKEN_CLOSE_SCOPE, // }
+  LEX_TOKEN_OPEN_BRACKET, // (
+  LEX_TOKEN_CLOSE_BRACKET, // )
+  LEX_TOKEN_EQUIV, // ==
+  LEX_TOKEN_LESS_THAN, // <
+  LEX_TOKEN_GREATER_THAN, // >
+  LEX_TOKEN_EOF
 };
 
-struct token_t {
-  enum token_type type;
+struct lex_token_t {
+  enum lex_token_type type;
   char text[32];
   size_t text_len;
 };
 
-struct token_list_t {
-  struct token_t *tokens;
+struct lex_token_list_t {
+  struct lex_token_t *tokens;
   int cur_idx;
   int total_tokens;
 };
 
-// Tokenizes a whole input stream, returning an array of tokens
-int tokenize_stream(
-    struct token_list_t *lexer_output,
+int lex_tokenize_stream(
+    struct lex_token_list_t *lexer_output,
     char *input,
     size_t input_size,
     size_t *token_size
 );
-
-// Tokenizes a single input, terminating at the terminator/deliminator
-struct token_t tokenize_input(char *input, size_t input_size);
