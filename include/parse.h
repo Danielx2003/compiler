@@ -16,13 +16,15 @@ enum ast_expr_prime_type {
 
 enum ast_operator_type {
   AST_OPERATOR_TYPE_ADD,
-  AST_OPERATOR_TYPE_SUBTRACT
+  AST_OPERATOR_TYPE_SUBTRACT,
+  AST_OPERATOR_TYPE_EQUIV,
+  AST_OPERATOR_TYPE_LESS_THAN,
+  AST_OPERATOR_TYPE_GREATER_THAN  
 };
 
 struct ast_operator {
   enum ast_operator_type type;
 };
-
 
 enum ast_term_type {
   AST_TERM_TYPE_ID,
@@ -72,9 +74,32 @@ struct ast_assignment {
   struct ast_expr expr;
 };
 
+struct ast_condition_body {
+  struct ast_assignment assignment; // will change to line later - for now just if (cond) { int y = 4; } 
+};
+
+struct ast_condition {
+  struct ast_term left_term;
+  enum ast_operator_type op;
+  struct ast_term right_term;
+};
+
+struct ast_conditional {
+  struct ast_condition condition;
+  struct ast_condition_body body;
+};
+
+enum ast_line_type {
+  AST_LINE_ASSIGNMENT,
+  AST_LINE_CONDITIONAL
+};
+
 struct ast_line {
-  struct ast_assignment assignment;
-  // Don't see a need for terminator here
+  enum ast_line_type type;
+  union {
+    struct ast_assignment assignment;
+    struct ast_conditional conditional;
+  } ctx;
 };
 
 struct ast_root {

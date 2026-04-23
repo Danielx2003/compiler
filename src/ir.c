@@ -89,14 +89,54 @@ struct ir_ret ir_assignment(struct ast_assignment *assign)
   printf("\n");
 }
 
+struct ir_ret ir_condition(struct ast_condition *cond)
+{
+  struct ir_ret;
+  printf("t%d = %*s == %s \n", 
+      temp_count++, 
+      cond->left_term.id.text_len, cond->left_term.id.text, 
+      cond->op,
+      cond->right_term.id.text
+  );
+}
+
+void ir_conditional(struct ast_conditional *cond)
+{
+  /*
+   int x = 5
+   if (x == 5)
+   {
+    int y = 5;
+   }
+
+  TAC:
+   x = 5
+   t1 = x == 5
+   ifZ t1 goto _L0
+   ret
+ _L0:
+    y = 5
+   */ 
+
+  struct ir_ret condition_ret = ir_condition(&cond->condition);
+}
+
 void ir_line(struct ast_line *line)
 {
-  // Once other line types are added, do a type check
-  ir_assignment(&line->assignment);
+  switch(line->type)
+  {
+    case AST_LINE_CONDITIONAL:
+      ir_conditional(&line->ctx.conditional);
+      break;
+    case AST_LINE_ASSIGNMENT:
+      ir_assignment(&line->ctx.assignment);
+      break;
+  }
 }
 
 void ir_ast(struct ast_root *root)
 {
+  printf("%d Lines: \n", root->num_lines);
   for (int i=0; i<root->num_lines; i++)
   {
     ir_line(&root->lines[i]);

@@ -9,114 +9,6 @@ static struct token_t cur_token = {0};
 int cur_line = 0;
 bool error = false;
 
-static void print_ast_term(struct ast_term *term, int level)
-{
-  for (int i=0; i<level; i++)
-  {
-    printf("    ");
-  }
-
-  if (term->type == AST_TERM_TYPE_ID)
-  {
-    printf("ID: %s\n", term->id.text);
-  }
-  else if (term->type == AST_TERM_TYPE_CONSTANT)
-  {
-    printf("Constant: %s\n", term->constant.text);
-  }
-}
-
-static void print_ast_expr_prime(struct ast_expr_prime *expr_prime, int level)
-{
-  if (expr_prime == NULL) { return; }
-
-
-  if (expr_prime->type == AST_EXPR_PRIME_TYPE_TERM_EXPR)
-  {
-    for (int i=0; i<level; i++)
-    {
-      printf("    ");
-    }
-    printf("Operator: +\n");
-    for (int i=0; i<level; i++)
-    {
-      printf("    ");
-    }
-    printf("Left:\n");
-    print_ast_term(&expr_prime->term, level+1);
-    for (int i=0; i<level; i++)
-    {
-      printf("    ");
-    }
-    printf("Right:\n");
-    print_ast_expr_prime(expr_prime->expr_prime, level+1);
-  }
-}
-
-static void print_ast_expr(struct ast_expr *expr, int level)
-{
-  for (int i=0; i<level; i++)
-  {
-    printf("    ");
-  }
-  printf("Expr:\n");
-
-  for (int i=0; i<level; i++)
-  {
-    printf("    ");
-  }
-  printf("Left: \n");
-  print_ast_term(&expr->term, level+1);
-
-  for (int i=0; i<level; i++)
-  {
-    printf("    ");
-  }
-  printf("Expr:\n");
-  print_ast_expr_prime(&expr->expr_prime, level+1);
-}
-
-static void print_ast_type(int level)
-{ 
-  for (int i=0; i<level; i++)
-  {
-    printf("    ");
-  }
-  printf("Type: Int\n");
-}
-
-static void print_ast_assignment(struct ast_assignment *assign, int level)
-{
-  for (int i=0; i<level; i++)
-  {
-    printf("    ");
-  }
-  printf("Assignment:\n");
-
-  for (int i=0; i<level; i++)
-  {
-    printf("    ");
-  }
-  printf("Left: ");
-
-  print_ast_type(level+1);
-}
-
-static void print_ast_line(struct ast_line *line)
-{
-  int level = 0;
-  print_ast_assignment(&line->assignment, level+1);
-}
-
-static void print_ast_root(struct ast_root *root)
-{
-  for (int i=0; i<root->num_lines; i++)
-  {
-    printf("Line %d:\n", i+1);
-    print_ast_line(&root->lines[i]);
-  } 
-}
-
 bool parse_terminator(struct token_list_t *lexer_output)
 {
   // Anchor Set:
@@ -128,7 +20,7 @@ bool parse_terminator(struct token_list_t *lexer_output)
     return true;
   }
 
-  printf("Expecting semi colon. Received %d\n", cur_token.type);
+  printf("Expecting semi colon. Received %*s\n", cur_token.text_len, cur_token.text);
   error = true;
   while (
       cur_token.type != TOKEN_TYPE_ID
@@ -210,7 +102,6 @@ bool parse_expr_prime(
   return true;
 }
 
-
 bool parse_expr(
     struct token_list_t *lexer_output,
     struct ast_expr *expr
@@ -264,7 +155,102 @@ bool parse_assignment(
     printf("Error: expected type");
   }
 
+  parse_terminator(lexer_output);
+
   return true;
+}
+
+bool parse_op(
+   struct token_list_t *lexer_output,
+   enum ast_operator_type *op
+)
+{
+  switch (cur_token.type)
+  {
+    case TOKEN_TYPE_EQUIV:
+      *op = AST_OPERATOR_TYPE_EQUIV;
+      break;
+    case TOKEN_TYPE_LESS_THAN:
+      *op = AST_OPERATOR_TYPE_LESS_THAN;
+      break;
+    case TOKEN_TYPE_GREATER_THAN:
+      *op = AST_OPERATOR_TYPE_GREATER_THAN;
+      break;
+    default:
+      printf("Invalid operator\n");
+      return false;
+  }
+  consume_token(lexer_output);
+  return true;
+}
+
+bool parse_condition(
+  struct token_list_t *lexer_output,
+  struct ast_condition *condition
+)
+{
+  if (!parse_term(lexer_output, &condition->left_term)
+      || !parse_op(lexer_output, &condition->op)
+      || !parse_term(lexer_output, &condition->right_term))
+  {
+    return false;
+  }
+
+  printf("%s == %s", condition->left_term.id.text, condition->right_term.id.text);
+
+  if (cur_token.type == TOKEN_TYPE_CLOSE_BRACKET)
+  {
+    consume_token(lexer_output);
+    return true;
+  }
+  
+  // find follow set, then while loop until we get to an element
+  printf("missing close bracket\n");
+}
+
+bool parse_condition_body(
+  struct token_list_t *lexer_output,
+  struct ast_condition_body *body
+)
+{
+  if (cur_token.type == TOKEN_TYPE_OPEN_SCOPE) 
+  {
+    consume_token(lexer_output);
+    parse_assignment(lexer_output, &body->assignment);
+  }
+  else
+  {
+    printf("expecting {\n");
+    // do a while loop until we reach a follow set element
+  }
+
+  if (cur_token.type == TOKEN_TYPE_CLOSE_SCOPE)
+  {
+    consume_token(lexer_output);
+  }
+  else
+  { 
+    printf("expecting }\n, %*s\n", cur_token.text_len, cur_token.text);
+    // do a while loop until we reach a follow set element
+  }
+}
+
+bool parse_if(
+  struct token_list_t *lexer_output,
+  struct ast_conditional *cond
+)
+{
+  if (cur_token.type == TOKEN_TYPE_OPEN_BRACKET) 
+  {
+    consume_token(lexer_output);
+    parse_condition(lexer_output, &cond->condition);
+    parse_condition_body(lexer_output, &cond->body);
+  }
+  else
+  {
+    printf("Expecting '('\n");
+    return false;
+  }
 }
 
 void parse_line(
@@ -272,8 +258,17 @@ void parse_line(
     struct ast_line *line
 )
 {
-  parse_assignment(lexer_output, &line->assignment);
-  parse_terminator(lexer_output);
+  if (cur_token.type == TOKEN_TYPE_IF)
+  {
+    line->type = AST_LINE_CONDITIONAL;
+    consume_token(lexer_output);
+    parse_if(lexer_output, &line->ctx.conditional);
+  }
+  else
+  {
+    line->type = AST_LINE_ASSIGNMENT;
+    parse_assignment(lexer_output, &line->ctx.assignment);
+  }
 }
 
 struct ast_root* parse_lexer_tokens(struct token_list_t *lexer_output, int num_lines)
@@ -293,8 +288,6 @@ struct ast_root* parse_lexer_tokens(struct token_list_t *lexer_output, int num_l
 
     parse_line(lexer_output, &root->lines[cur_line]);
     cur_line++;
-    break;
-
   } while (cur_token.type != TOKEN_TYPE_EOF);
   
   printf("--- Done ---\n");
@@ -324,8 +317,10 @@ void consume_token(
 
 void free_ast_expr_prime(struct ast_expr_prime *expr_prime)
 {
-  if (!expr_prime->expr_prime) { return; }
+  if (expr_prime) { return; }
   free_ast_expr_prime(expr_prime->expr_prime);
+  
+  if (!expr_prime->expr_prime) { return; }
   free(expr_prime->expr_prime);
 }
 
@@ -341,7 +336,7 @@ void free_ast_assignment(struct ast_assignment *assign)
 
 void free_ast_line(struct ast_line *line)
 {
-  free_ast_assignment(&line->assignment);
+  free_ast_assignment(&line->ctx.assignment);
 }
 
 void free_ast(struct ast_root *root)

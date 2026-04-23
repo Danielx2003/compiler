@@ -9,7 +9,8 @@ static void add_token_to_list(struct token_list_t *lexer_output, struct token_t 
 {
   if (lexer_output->cur_idx >= lexer_output->total_tokens) // Increase size
   {
-    lexer_output->tokens = realloc(lexer_output->tokens, lexer_output->total_tokens * 2);
+    lexer_output->total_tokens = lexer_output->total_tokens * 2;
+    lexer_output->tokens = realloc(lexer_output->tokens, lexer_output->total_tokens + 1);
   }
 
   memcpy(
@@ -26,6 +27,8 @@ static enum token_type get_token_type_from_text(char *buf)
 {
   if (strcmp(buf, "return") == 0) { return TOKEN_TYPE_RETURN; }
   if (strcmp(buf, "int") == 0) { return TOKEN_TYPE_INT; }
+  if (strcmp(buf, "if") == 0) { return TOKEN_TYPE_IF; }
+  if (strcmp(buf, "==") == 0) { return TOKEN_TYPE_EQUIV; }
 
   switch(buf[0])
   {
@@ -65,14 +68,115 @@ int tokenize_stream(
   char *text;
   struct token_t token = {0};
 
-  lexer_output->tokens = (struct token_t*)calloc(16, sizeof(struct token_t));
-  lexer_output->total_tokens = 16;
+  lexer_output->tokens = (struct token_t*)calloc(lexer_output->total_tokens, sizeof(struct token_t));
   lexer_output->cur_idx = 0;
 
   while (cur < input_size)
   {
     switch(input[cur])
     {
+      case '>':
+        if (cur-strt > 0)
+        {
+          token.text_len = cur-strt;
+          memcpy(token.text, &input[strt], cur-strt);
+          token.type = get_token_type_from_text(token.text);
+
+          add_token_to_list(lexer_output, &token);
+        }
+
+        token.type = TOKEN_TYPE_GREATER_THAN;
+        token.text_len = 1;
+        memcpy(token.text, &input[cur], 1);
+        add_token_to_list(lexer_output, &token);
+
+        strt = cur+1;
+        break;
+      case '<':
+        if (cur-strt > 0)
+        {
+          token.text_len = cur-strt;
+          memcpy(token.text, &input[strt], cur-strt);
+          token.type = get_token_type_from_text(token.text);
+
+          add_token_to_list(lexer_output, &token);
+        }
+
+        token.type = TOKEN_TYPE_LESS_THAN;
+        token.text_len = 1;
+        memcpy(token.text, &input[cur], 1);
+        add_token_to_list(lexer_output, &token);
+
+        strt = cur+1;
+        break;
+      case '}':
+        if (cur-strt > 0)
+        {
+          token.text_len = cur-strt;
+          memcpy(token.text, &input[strt], cur-strt);
+          token.type = get_token_type_from_text(token.text);
+
+          add_token_to_list(lexer_output, &token);
+        }
+
+        token.type = TOKEN_TYPE_CLOSE_SCOPE;
+        token.text_len = 1;
+        memcpy(token.text, &input[cur], 1);
+        add_token_to_list(lexer_output, &token);
+
+        strt = cur+1;
+        break;
+      case '{':
+        if (cur-strt > 0)
+        {
+          token.text_len = cur-strt;
+          memcpy(token.text, &input[strt], cur-strt);
+          token.type = get_token_type_from_text(token.text);
+
+          add_token_to_list(lexer_output, &token);
+        }
+
+        token.type = TOKEN_TYPE_OPEN_SCOPE;
+        token.text_len = 1;
+        memcpy(token.text, &input[cur], 1);
+        add_token_to_list(lexer_output, &token);
+
+        strt = cur+1;
+        break;
+      case ')':
+        if (cur-strt > 0)
+        {
+          token.text_len = cur-strt;
+          memcpy(token.text, &input[strt], cur-strt);
+          token.type = get_token_type_from_text(token.text);
+
+          add_token_to_list(lexer_output, &token);
+        }
+
+        token.type = TOKEN_TYPE_CLOSE_BRACKET;
+        token.text_len = 1;
+        memcpy(token.text, &input[cur], 1);
+        add_token_to_list(lexer_output, &token);
+
+        strt = cur+1;
+        break;
+      case '(':
+        if (cur-strt > 0)
+        {
+          token.text_len = cur-strt;
+          memcpy(token.text, &input[strt], cur-strt);
+          token.type = get_token_type_from_text(token.text);
+
+          add_token_to_list(lexer_output, &token);
+        }
+
+        token.type = TOKEN_TYPE_OPEN_BRACKET;
+        token.text_len = 1;
+        memcpy(token.text, &input[cur], 1);
+        add_token_to_list(lexer_output, &token);
+
+        strt = cur+1;
+        break;
       case '+':
         if (cur-strt > 0)
         {
@@ -96,6 +200,11 @@ int tokenize_stream(
           token.text_len = cur-strt;
           memcpy(token.text, &input[strt], cur-strt);
           token.type = get_token_type_from_text(token.text);
+
+          if (token.type == TOKEN_TYPE_CONSTANT)
+          {
+            printf("constatn: %s\n", token.text);
+          }
 
           add_token_to_list(lexer_output, &token);
         }
