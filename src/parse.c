@@ -11,16 +11,12 @@ bool error = false;
 
 bool parse_terminator(struct lex_token_list_t *lexer_output)
 {
-  // Anchor Set:
-  // TOKEN_TYPE_SEMI_COLON
-  
   if (cur_token.type == LEX_TOKEN_SEMI_COLON)
   {
     consume_token(lexer_output);
     return true;
   }
 
-  printf("Expecting semi colon. Received %*s\n", cur_token.text_len, cur_token.text);
   error = true;
   while (
       cur_token.type != LEX_TOKEN_ID
@@ -39,9 +35,6 @@ bool parse_term(
     struct ast_term *term
 )
 {
-  // Anchor Set:
-  // TOKEN_TYPE_ADD, TOKEN_TYPE_SEMI_COLON -> we used id and constatnt before...
-
   if (cur_token.type == LEX_TOKEN_ID)
   {
     term->type = AST_TERM_TYPE_ID;
@@ -57,11 +50,16 @@ bool parse_term(
     return true;
   }
 
-  printf("Error: Expecting ID or CONSTANT . Received %d\n", cur_token.type);
   error = true;
-  while (cur_token.type != LEX_TOKEN_ADD
-      && cur_token.type != LEX_TOKEN_SEMI_COLON
-      && cur_token.type != LEX_TOKEN_EOF)
+  while (
+    cur_token.type != LEX_TOKEN_ADD
+    && cur_token.type != LEX_TOKEN_EQUIV
+    && cur_token.type != LEX_TOKEN_GREATER_THAN
+    && cur_token.type != LEX_TOKEN_LESS_THAN
+    && cur_token.type != LEX_TOKEN_CLOSE_SCOPE
+    && cur_token.type != LEX_TOKEN_CLOSE_BRACKET
+    && cur_token.type != LEX_TOKEN_SEMI_COLON
+    && cur_token.type != LEX_TOKEN_EOF)
   {
     consume_token(lexer_output);
   }
@@ -130,15 +128,12 @@ bool parse_equals(struct lex_token_list_t *lexer_output)
   }
 
   return true;
-  // Otherwise consume until we reach the anchor set / FOLLOW(=)
 }
 
 bool parse_assignment(
     struct lex_token_list_t *lexer_output,
     struct ast_assignment *assignment)
 {
-  // Work out anchor set / FOLLOW(assignment)
-
   if (cur_token.type == LEX_TOKEN_INT)
   {
     assignment->type = AST_TYPE_INT;
@@ -152,11 +147,19 @@ bool parse_assignment(
   }
   else
   {
-    printf("Error: expected type");
+    error = true;
+    while (
+      cur_token.type != LEX_TOKEN_SEMI_COLON
+      && cur_token.type != LEX_TOKEN_CLOSE_SCOPE
+      && cur_token.type != LEX_TOKEN_EOF)
+    {
+      consume_token(lexer_output);
+    }
+    if (cur_token.type == LEX_TOKEN_EOF) { return false; }
   }
 
   parse_terminator(lexer_output);
-
+  
   return true;
 }
 
@@ -196,16 +199,25 @@ bool parse_condition(
     return false;
   }
 
-  printf("%s == %s", condition->left_term.id.text, condition->right_term.id.text);
-
   if (cur_token.type == LEX_TOKEN_CLOSE_BRACKET)
   {
     consume_token(lexer_output);
     return true;
   }
-  
-  // find follow set, then while loop until we get to an element
-  printf("missing close bracket\n");
+
+  while (
+    cur_token.type != LEX_TOKEN_CLOSE_BRACKET
+    && cur_token.type != LEX_TOKEN_EOF
+  )
+  {
+    consume_token(lexer_output);
+  }
+
+  if (cur_token.type == LEX_TOKEN_EOF)
+  {
+    return false;
+  }
+
 }
 
 bool parse_condition_body(
@@ -213,15 +225,10 @@ bool parse_condition_body(
   struct ast_condition_body *body
 )
 {
-  if (cur_token.type == LEX_TOKEN_OPEN_SCOPE) 
+  if (cur_token.type == LEX_TOKEN_OPEN_SCOPE)
   {
     consume_token(lexer_output);
     parse_assignment(lexer_output, &body->assignment);
-  }
-  else
-  {
-    printf("expecting {\n");
-    // do a while loop until we reach a follow set element
   }
 
   if (cur_token.type == LEX_TOKEN_CLOSE_SCOPE)
@@ -230,8 +237,20 @@ bool parse_condition_body(
   }
   else
   { 
-    printf("expecting }\n, %*s\n", cur_token.text_len, cur_token.text);
-    // do a while loop until we reach a follow set element
+    while (
+      cur_token.type != LEX_TOKEN_SEMI_COLON
+      && cur_token.type != LEX_TOKEN_CLOSE_SCOPE
+      && cur_token.type != LEX_TOKEN_EOF
+    )
+    {
+      consume_token(lexer_output);
+    }
+
+    if (cur_token.type == LEX_TOKEN_EOF)
+    {
+      return false;
+    }
+
   }
 }
 
@@ -248,9 +267,22 @@ bool parse_if(
   }
   else
   {
-    printf("Expecting '('\n");
-    return false;
+    while (
+      cur_token.type != LEX_TOKEN_SEMI_COLON
+      && cur_token.type != LEX_TOKEN_CLOSE_BRACKET
+      && cur_token.type != LEX_TOKEN_EOF
+    )
+    {
+      consume_token(lexer_output);
+    }
+
+    if (cur_token.type == LEX_TOKEN_EOF)
+    {
+      return false;
+    }
   }
+
+  return true;
 }
 
 void parse_line(
@@ -284,17 +316,13 @@ struct ast_root* parse_lexer_tokens(struct lex_token_list_t *lexer_output, int n
   do {
     peek_token(lexer_output);
 
-    if (cur_token.type == LEX_TOKEN_EOF) { printf("at EOF"); continue; }
+    if (cur_token.type == LEX_TOKEN_EOF) { continue; }
 
     parse_line(lexer_output, &root->lines[cur_line]);
     cur_line++;
   } while (cur_token.type != LEX_TOKEN_EOF);
-  
-  printf("--- Done ---\n");
 
-  // if (!error) { print_ast_root(root); }
-  // else { printf("Syntax error found\n"); }
-  // free_ast(root);
+  if (error) { printf("Syntax Error\n"); }
   return root;
 }
 

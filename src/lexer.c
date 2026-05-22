@@ -25,7 +25,6 @@ static void add_token_to_list(struct lex_token_list_t *lexer_output, struct lex_
 
 static enum lex_token_type get_token_type_from_text(char *buf)
 {
-  printf("working out token for %s\n", buf);
   if (strcmp(buf, "return") == 0) { return LEX_TOKEN_RETURN; }
   if (strcmp(buf, "int") == 0) { return LEX_TOKEN_INT; }
   if (strcmp(buf, "if") == 0) { return LEX_TOKEN_IF; }
@@ -234,6 +233,7 @@ int lex_tokenize_stream(
         strt = cur+1;
         break;
       case ' ':
+      case '\n':
         if (cur-strt > 0)
         {
           token.text_len = cur-strt;
@@ -241,11 +241,6 @@ int lex_tokenize_stream(
           fread(token.text, sizeof(char), cur-strt, file);
           fseek(file, cur+1, SEEK_SET);
           token.type = get_token_type_from_text(token.text);
-
-          if (token.type == LEX_TOKEN_CONSTANT)
-          {
-            printf("constant \n");
-          }
 
           add_token_to_list(lexer_output, &token);
         }

@@ -33,7 +33,7 @@ int main()
   }
   printf("\n");
  
-  // struct ast_root *root = parse_lexer_tokens(&lexer_output, num_lines);
+  struct ast_root *root = parse_lexer_tokens(&lexer_output, num_lines);
   // ir_ast(root);
   // free(root);
   free(lexer_output.tokens); 
