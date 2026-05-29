@@ -17,6 +17,7 @@ bool parse_terminator(struct lex_token_list_t *lexer_output)
     return true;
   }
 
+  printf("expecting terminator \n");
   error = true;
   while (
       cur_token.type != LEX_TOKEN_ID
@@ -49,7 +50,8 @@ bool parse_term(
     consume_token(lexer_output);
     return true;
   }
-
+  
+  printf("Error Parsing Term\n");
   error = true;
   while (
     cur_token.type != LEX_TOKEN_ADD
@@ -147,6 +149,7 @@ bool parse_assignment(
   }
   else
   {
+    printf("Error parsing assignment: expected int, recieved: %d, at index %d\n", cur_token.type, lexer_output->cur_idx);
     error = true;
     while (
       cur_token.type != LEX_TOKEN_SEMI_COLON
