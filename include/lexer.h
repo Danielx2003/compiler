@@ -28,6 +28,9 @@ struct lex_token_t {
   enum lex_token_type type;
   char text[32];
   size_t text_len;
+  union {
+    int num_lines;
+  } ctx;
 };
 
 struct lex_token_list_t {
