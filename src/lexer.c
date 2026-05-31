@@ -54,6 +54,63 @@ static enum lex_token_type get_token_type_from_text(char *buf)
   return LEX_TOKEN_ID;  
 }
 
+struct lex_token_t* get_prev_open_scope_token(struct lex_token_list_t *lexer_output, int tokens_since)
+{
+  if (lexer_output->cur_idx - tokens_since < 0)
+  {
+    return NULL;
+  }
+
+  return &lexer_output->tokens[lexer_output->cur_idx - tokens_since];
+}
+
+struct scope_t {
+  size_t num_lines;
+  int num_tokens;
+};
+
+struct scope_stack_t {
+  struct scope_t *scopes;
+  int top;
+  int num_scopes;
+};
+
+struct scope_t *pop_scope(struct scope_stack_t *stack)
+{
+  if (stack->top == 0)
+  {
+    printf("Stack Empty\n");
+    return NULL;
+  }
+
+  struct scope_t *scope_res = (struct scope_t*)malloc(sizeof(struct scope_t));
+
+  memcpy(scope_res, &stack->scopes[stack->top], sizeof(struct scope_t));
+  memset(&stack->scopes[stack->top], 0, sizeof(struct scope_t));
+  stack->top--;
+  stack->scopes[stack->top].num_lines++;
+  stack->scopes[stack->top].num_tokens += scope_res->num_tokens;
+  return scope_res;
+}
+
+void create_new_scope(struct scope_stack_t *stack)
+{
+  if (stack->top+1 >= stack->num_scopes)
+  {
+    stack->scopes = (struct scope_t*)realloc(stack->scopes, sizeof(struct scope_t) * stack->num_scopes*2);
+
+    if (stack->scopes == NULL)
+    {
+      printf("failed\n");
+      return;
+    }
+    stack->num_scopes = stack->num_scopes * 2;
+  }
+
+  stack->top++;
+  memset(&stack->scopes[stack->top], 0, sizeof(struct scope_t));
+}
+
 int lex_tokenize_stream(
     struct lex_token_list_t *lexer_output,
     char *input,
@@ -75,6 +132,11 @@ int lex_tokenize_stream(
   int cur = 0;
   char c;
   struct lex_token_t token = {0};
+  
+  struct scope_stack_t scope_stack = {0};
+  scope_stack.scopes = (struct scope_t*)calloc(10, sizeof(struct scope_t));
+  scope_stack.num_scopes = 10;
+  scope_stack.top = 0;
 
   lexer_output->tokens = (struct lex_token_t*)calloc(lexer_output->total_tokens, sizeof(struct lex_token_t));
   lexer_output->cur_idx = 0;
@@ -95,6 +157,7 @@ int lex_tokenize_stream(
           token.type = get_token_type_from_text(token.text);
 
           add_token_to_list(lexer_output, &token);
+          scope_stack.scopes[scope_stack.top].num_tokens++;
         }
 
         token.type = LEX_TOKEN_GREATER_THAN;
@@ -103,6 +166,7 @@ int lex_tokenize_stream(
         fread(token.text, sizeof(char), 1, file);
         fseek(file, cur+1, SEEK_SET);
         add_token_to_list(lexer_output, &token);
+        scope_stack.scopes[scope_stack.top].num_tokens++;
 
         strt = cur+1;
         break;
@@ -116,6 +180,7 @@ int lex_tokenize_stream(
           token.type = get_token_type_from_text(token.text);
 
           add_token_to_list(lexer_output, &token);
+          scope_stack.scopes[scope_stack.top].num_tokens++;
         }
 
         token.type = LEX_TOKEN_LESS_THAN;
@@ -124,6 +189,7 @@ int lex_tokenize_stream(
         fread(token.text, sizeof(char), 1, file);
         fseek(file, cur+1, SEEK_SET);
         add_token_to_list(lexer_output, &token);
+        scope_stack.scopes[scope_stack.top].num_tokens++;
 
         strt = cur+1;
         break;
@@ -137,15 +203,25 @@ int lex_tokenize_stream(
           token.type = get_token_type_from_text(token.text);
 
           add_token_to_list(lexer_output, &token);
+          scope_stack.scopes[scope_stack.top].num_tokens++;
         }
 
         token.type = LEX_TOKEN_CLOSE_SCOPE;
         token.text_len = 1;
+
         fseek(file, cur, SEEK_SET);
         fread(token.text, sizeof(char), 1, file);
         fseek(file, cur+1, SEEK_SET);
-        add_token_to_list(lexer_output, &token);
+        
+        struct scope_t *scope_res = pop_scope(&scope_stack);
+        
+        struct lex_token_t *open_scope_token = get_prev_open_scope_token(lexer_output, scope_res->num_tokens);
+        open_scope_token->ctx.num_lines = scope_res->num_lines;
+        free(scope_res);
 
+        add_token_to_list(lexer_output, &token);
+        scope_stack.scopes[scope_stack.top].num_tokens++;
+        
         strt = cur+1;
         break;
       case '{':
@@ -158,6 +234,7 @@ int lex_tokenize_stream(
           token.type = get_token_type_from_text(token.text);
 
           add_token_to_list(lexer_output, &token);
+          scope_stack.scopes[scope_stack.top].num_tokens++;
         }
 
         token.type = LEX_TOKEN_OPEN_SCOPE;
@@ -165,7 +242,9 @@ int lex_tokenize_stream(
         fseek(file, cur, SEEK_SET);
         fread(token.text, sizeof(char), 1, file);
         fseek(file, cur+1, SEEK_SET);
+        create_new_scope(&scope_stack);
         add_token_to_list(lexer_output, &token);
+        scope_stack.scopes[scope_stack.top].num_tokens++;
 
         strt = cur+1;
         break;
@@ -179,6 +258,7 @@ int lex_tokenize_stream(
           token.type = get_token_type_from_text(token.text);
 
           add_token_to_list(lexer_output, &token);
+          scope_stack.scopes[scope_stack.top].num_tokens++;
         }
 
         token.type = LEX_TOKEN_CLOSE_BRACKET;
@@ -187,6 +267,7 @@ int lex_tokenize_stream(
         fread(token.text, sizeof(char), 1, file);
         fseek(file, cur+1, SEEK_SET);
         add_token_to_list(lexer_output, &token);
+        scope_stack.scopes[scope_stack.top].num_tokens++;
 
         strt = cur+1;
         break;
@@ -200,6 +281,7 @@ int lex_tokenize_stream(
           token.type = get_token_type_from_text(token.text);
 
           add_token_to_list(lexer_output, &token);
+          scope_stack.scopes[scope_stack.top].num_tokens++;
         }
 
         token.type = LEX_TOKEN_OPEN_BRACKET;
@@ -208,6 +290,7 @@ int lex_tokenize_stream(
         fread(token.text, sizeof(char), 1, file);
         fseek(file, cur+1, SEEK_SET);
         add_token_to_list(lexer_output, &token);
+        scope_stack.scopes[scope_stack.top].num_tokens++;
 
         strt = cur+1;
         break;
@@ -221,6 +304,7 @@ int lex_tokenize_stream(
           token.type = get_token_type_from_text(token.text);
 
           add_token_to_list(lexer_output, &token);
+          scope_stack.scopes[scope_stack.top].num_tokens++;
         }
 
         token.type = LEX_TOKEN_ADD;
@@ -229,6 +313,7 @@ int lex_tokenize_stream(
         fread(token.text, sizeof(char), 1, file);
         fseek(file, cur+1, SEEK_SET);
         add_token_to_list(lexer_output, &token);
+        scope_stack.scopes[scope_stack.top].num_tokens++;
 
         strt = cur+1;
         break;
@@ -243,12 +328,13 @@ int lex_tokenize_stream(
           token.type = get_token_type_from_text(token.text);
 
           add_token_to_list(lexer_output, &token);
+          scope_stack.scopes[scope_stack.top].num_tokens++;
         }
 
         strt = cur+1;
         break;
       case ';':
-        num_lines++;
+        scope_stack.scopes[scope_stack.top].num_lines++;
         if (cur-strt > 0)
         {
           token.text_len = cur-strt;
@@ -258,8 +344,8 @@ int lex_tokenize_stream(
           token.type = get_token_type_from_text(token.text);
 
           add_token_to_list(lexer_output, &token);
+          scope_stack.scopes[scope_stack.top].num_tokens++;
         }
-        
 
         token.type = LEX_TOKEN_SEMI_COLON;
         token.text_len = 1;
@@ -267,6 +353,7 @@ int lex_tokenize_stream(
         fread(token.text, sizeof(char), 1, file);
         fseek(file, cur+1, SEEK_SET);
         add_token_to_list(lexer_output, &token);
+        scope_stack.scopes[scope_stack.top].num_tokens++;
 
         strt = cur+1;
         break;
@@ -278,179 +365,10 @@ int lex_tokenize_stream(
   } while (c != EOF);
   printf("\n");
 
-  // replace with consuming token from files, as files may be too big for a single buffer
-
-  /*
-  while (cur < input_size)
-  {
-    switch(input[cur])
-    {
-      case '>':
-        if (cur-strt > 0)
-        {
-          token.text_len = cur-strt;
-          memcpy(token.text, &input[strt], cur-strt);
-          token.type = get_token_type_from_text(token.text);
-
-          add_token_to_list(lexer_output, &token);
-        }
-
-        token.type = TOKEN_TYPE_GREATER_THAN;
-        token.text_len = 1;
-        memcpy(token.text, &input[cur], 1);
-        add_token_to_list(lexer_output, &token);
-
-        strt = cur+1;
-        break;
-      case '<':
-        if (cur-strt > 0)
-        {
-          token.text_len = cur-strt;
-          memcpy(token.text, &input[strt], cur-strt);
-          token.type = get_token_type_from_text(token.text);
-
-          add_token_to_list(lexer_output, &token);
-        }
-
-        token.type = TOKEN_TYPE_LESS_THAN;
-        token.text_len = 1;
-        memcpy(token.text, &input[cur], 1);
-        add_token_to_list(lexer_output, &token);
-
-        strt = cur+1;
-        break;
-      case '}':
-        if (cur-strt > 0)
-        {
-          token.text_len = cur-strt;
-          memcpy(token.text, &input[strt], cur-strt);
-          token.type = get_token_type_from_text(token.text);
-
-          add_token_to_list(lexer_output, &token);
-        }
-
-        token.type = TOKEN_TYPE_CLOSE_SCOPE;
-        token.text_len = 1;
-        memcpy(token.text, &input[cur], 1);
-        add_token_to_list(lexer_output, &token);
-
-        strt = cur+1;
-        break;
-      case '{':
-        if (cur-strt > 0)
-        {
-          token.text_len = cur-strt;
-          memcpy(token.text, &input[strt], cur-strt);
-          token.type = get_token_type_from_text(token.text);
-
-          add_token_to_list(lexer_output, &token);
-        }
-
-        token.type = TOKEN_TYPE_OPEN_SCOPE;
-        token.text_len = 1;
-        memcpy(token.text, &input[cur], 1);
-        add_token_to_list(lexer_output, &token);
-
-        strt = cur+1;
-        break;
-      case ')':
-        if (cur-strt > 0)
-        {
-          token.text_len = cur-strt;
-          memcpy(token.text, &input[strt], cur-strt);
-          token.type = get_token_type_from_text(token.text);
-
-          add_token_to_list(lexer_output, &token);
-        }
-
-        token.type = TOKEN_TYPE_CLOSE_BRACKET;
-        token.text_len = 1;
-        memcpy(token.text, &input[cur], 1);
-        add_token_to_list(lexer_output, &token);
-
-        strt = cur+1;
-        break;
-      case '(':
-        if (cur-strt > 0)
-        {
-          token.text_len = cur-strt;
-          memcpy(token.text, &input[strt], cur-strt);
-          token.type = get_token_type_from_text(token.text);
-
-          add_token_to_list(lexer_output, &token);
-        }
-
-        token.type = TOKEN_TYPE_OPEN_BRACKET;
-        token.text_len = 1;
-        memcpy(token.text, &input[cur], 1);
-        add_token_to_list(lexer_output, &token);
-
-        strt = cur+1;
-        break;
-      case '+':
-        if (cur-strt > 0)
-        {
-          token.text_len = cur-strt;
-          memcpy(token.text, &input[strt], cur-strt);
-          token.type = get_token_type_from_text(token.text);
-
-          add_token_to_list(lexer_output, &token);
-        }
-
-        token.type = TOKEN_TYPE_ADD;
-        token.text_len = 1;
-        memcpy(token.text, &input[cur], 1);
-        add_token_to_list(lexer_output, &token);
-
-        strt = cur+1;
-        break;
-      case ' ':
-        if (cur-strt > 0)
-        {
-          token.text_len = cur-strt;
-          memcpy(token.text, &input[strt], cur-strt);
-          token.type = get_token_type_from_text(token.text);
-
-          if (token.type == TOKEN_TYPE_CONSTANT)
-          {
-            printf("constatn: %s\n", token.text);
-          }
-
-          add_token_to_list(lexer_output, &token);
-        }
-
-        strt = cur+1;
-        break;
-      case ';':
-        num_lines++;
-        if (cur-strt > 0)
-        {
-          token.text_len = cur-strt;
-          memcpy(token.text, &input[strt], cur-strt);
-          token.type = get_token_type_from_text(token.text);
-
-          add_token_to_list(lexer_output, &token);
-        }
-
-        token.type = TOKEN_TYPE_SEMI_COLON;
-        token.text_len = 1;
-        memcpy(token.text, &input[cur], 1);
-        add_token_to_list(lexer_output, &token);
-
-        strt = cur+1;
-        break;
-      default:
-       break; 
-    }
-    prev = cur;
-    cur++;
-  }
-*/
-
   token.type = LEX_TOKEN_EOF;
   add_token_to_list(lexer_output, &token);
 
   if (num_lines == 0) { num_lines++; } 
 
-  return num_lines;
+  return scope_stack.scopes[scope_stack.top].num_lines;
 }

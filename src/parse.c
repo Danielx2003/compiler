@@ -228,10 +228,20 @@ bool parse_condition_body(
   struct ast_condition_body *body
 )
 {
+  body->lines = (struct ast_line*)calloc(cur_token.ctx.num_lines, sizeof(struct ast_line));
+  if (body->lines != NULL)
+  {
+    body->num_lines = cur_token.ctx.num_lines;
+  }
+
   if (cur_token.type == LEX_TOKEN_OPEN_SCOPE)
   {
     consume_token(lexer_output);
-    parse_assignment(lexer_output, &body->assignment);
+    for (int i = 0; i < body->num_lines; i++)
+    {
+      parse_line(lexer_output, &body->lines[i]);
+    }
+    // parse_assignment(lexer_output, &body->assignment);
   }
 
   if (cur_token.type == LEX_TOKEN_CLOSE_SCOPE)
@@ -253,7 +263,6 @@ bool parse_condition_body(
     {
       return false;
     }
-
   }
 }
 
