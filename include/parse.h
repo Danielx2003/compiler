@@ -75,7 +75,8 @@ struct ast_assignment {
 };
 
 struct ast_condition_body {
-  struct ast_assignment assignment; // will change to line later - for now just if (cond) { int y = 4; } 
+  struct ast_line *lines;
+  int num_lines;
 };
 
 struct ast_condition {
@@ -119,3 +120,9 @@ void peek_token(
 );
 
 void consume_token(struct lex_token_list_t *lexer_output);
+
+void parse_line(
+    struct lex_token_list_t *lexer_output,
+    struct ast_line *line
+);
+
