@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 static int temp_count = 0;
+static int label_count = 0;
 
 // Using copy rather than ptrs from func return for simplicity
 
@@ -19,6 +20,30 @@ void print_ir_ret(struct ir_ret *ret)
   }
 }
 
+char *op_to_text(enum ast_operator_type op)
+{
+  switch (op)
+  {
+    case AST_OPERATOR_TYPE_ADD:
+      return "+";
+    case AST_OPERATOR_TYPE_SUBTRACT:
+      return "-";
+    case AST_OPERATOR_TYPE_EQUIV:
+      return "==";
+    case AST_OPERATOR_TYPE_LESS_THAN:
+      return "<";
+    case AST_OPERATOR_TYPE_GREATER_THAN:
+      return ">";
+    default:
+      return "_";
+  }
+}
+
+void create_if(int temp, int label)
+{
+  printf("ifz t%d goto L%d\n", temp, label);
+}
+
 struct ir_ret ir_expr_prime(struct ast_expr_prime *expr_prime)
 {
   struct ir_ret ret = {
@@ -31,7 +56,7 @@ struct ir_ret ir_expr_prime(struct ast_expr_prime *expr_prime)
   }
 
   struct ir_ret expr_prime_ret = ir_expr_prime(expr_prime->expr_prime);
-  ret.temp = temp_count++;
+  ret.temp = ++temp_count;
 
   if (expr_prime->type == AST_EXPR_PRIME_TYPE_TERM_ONLY)
   {
@@ -60,7 +85,7 @@ struct ir_ret ir_expr_prime(struct ast_expr_prime *expr_prime)
 struct ir_ret ir_expr(struct ast_expr *expr)
 {
   struct ir_ret ret;
-  ret.temp = temp_count++;
+  ret.temp = ++temp_count;
   ret.type = IR_RET_TYPE_TEMP;
   
   if (expr->expr_prime.type != AST_EXPR_PRIME_TYPE_NULL)
@@ -82,7 +107,7 @@ struct ir_ret ir_expr(struct ast_expr *expr)
 struct ir_ret ir_assignment(struct ast_assignment *assign)
 {
   struct ir_ret ret;
-  ret.temp = temp_count++;
+  ret.temp = ++temp_count;
   struct ir_ret expr_ret = ir_expr(&assign->expr);
   printf("%s = ", assign->term.id.text);
   print_ir_ret(&expr_ret);
@@ -91,34 +116,37 @@ struct ir_ret ir_assignment(struct ast_assignment *assign)
 
 struct ir_ret ir_condition(struct ast_condition *cond)
 {
-  struct ir_ret;
-  printf("t%d = %*s == %s \n", 
-      temp_count++, 
-      cond->left_term.id.text_len, cond->left_term.id.text, 
-      cond->op,
+  struct ir_ret ret;
+  printf("t%d = %s %s %s \n", 
+      ++temp_count,
+      cond->left_term.id.text,
+      op_to_text(cond->op),
       cond->right_term.id.text
   );
+
+  ret.type = IR_RET_TYPE_TEMP;
+  ret.temp = temp_count;
+  return ret;
+}
+
+void ir_condition_body(struct ast_condition_body *body)
+{
+  for (int i = 0; i < body->num_lines; i++)
+  {
+    ir_line(&body->lines[i]);
+  }
 }
 
 void ir_conditional(struct ast_conditional *cond)
 {
-  /*
-   int x = 5
-   if (x == 5)
-   {
-    int y = 5;
-   }
-
-  TAC:
-   x = 5
-   t1 = x == 5
-   ifZ t1 goto _L0
-   ret
- _L0:
-    y = 5
-   */ 
-
   struct ir_ret condition_ret = ir_condition(&cond->condition);
+  int local_label = ++label_count;
+  create_if(condition_ret.temp, local_label);
+  // If Block
+  ir_condition_body(&cond->body);
+  // goto local_label
+  // Else Block
+  printf("L%d:\n", local_label);
 }
 
 void ir_line(struct ast_line *line)
