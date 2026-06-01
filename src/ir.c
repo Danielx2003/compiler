@@ -6,6 +6,9 @@
 static int temp_count = 0;
 static int label_count = 0;
 
+struct ir_item ir_list[32] = {0};
+static int ir_idx = 0;
+
 // Using copy rather than ptrs from func return for simplicity
 
 void print_ir_ret(struct ir_ret *ret)
@@ -39,9 +42,20 @@ char *op_to_text(enum ast_operator_type op)
   }
 }
 
+void add_to_ir_list(struct ir_item *item)
+{
+  memcpy(&ir_list[ir_idx], item, sizeof(struct ir_item));
+  ir_idx++;
+}
+
 void create_if(int temp, int label)
 {
-  printf("ifz t%d goto L%d\n", temp, label);
+  struct ir_item item = {0};
+  item.conditional.temp = temp;
+  item.conditional.label = label;
+  add_to_ir_list(&item);
+
+  // printf("ifz t%d goto L%d\n", item.conditional.temp, item.conditional.label);
 }
 
 struct ir_ret ir_expr_prime(struct ast_expr_prime *expr_prime)
@@ -69,10 +83,18 @@ struct ir_ret ir_expr_prime(struct ast_expr_prime *expr_prime)
   
   if (expr_prime_ret.type == IR_RET_TYPE_NULL)
   {
-    printf("t%d = %s", ret.temp, expr_prime->term.id.text);
+    struct ir_item item = {0};
+    item.assign.type = IR_ASSIGN_VALUE;
+    item.assign.value.type = IR_ASSIGN_VALUE_SINGLE;
+    item.assign.value.assign_op = IR_ASSIGN_OPERATOR_TYPE_NONE;
+    item.assign.value.lhs.temp = ret.temp;
+    memcpy(item.assign.value.rhs.term_rhs, expr_prime->term.id.text, sizeof(item.assign.value.rhs.term_rhs));
+
+    // printf("t%d = %s", item.assign.value.lhs, item.assign.value.rhs.term_rhs);
   }
   else
   {
+
     printf("t%d = %s + ", ret.temp, expr_prime->term.id.text);
     print_ir_ret(&expr_prime_ret);
   }
@@ -117,12 +139,20 @@ struct ir_ret ir_assignment(struct ast_assignment *assign)
 struct ir_ret ir_condition(struct ast_condition *cond)
 {
   struct ir_ret ret;
+  struct ir_item item;
+
+  int temp_local = temp_count;
+  temp_count++;
+
   printf("t%d = %s %s %s \n", 
-      ++temp_count,
+      temp_local,
       cond->left_term.id.text,
       op_to_text(cond->op),
       cond->right_term.id.text
   );
+
+  item.assign.type = IR_ASSIGN_CONDITION;
+  item.assign.condition.type = 
 
   ret.type = IR_RET_TYPE_TEMP;
   ret.temp = temp_count;
@@ -146,7 +176,12 @@ void ir_conditional(struct ast_conditional *cond)
   ir_condition_body(&cond->body);
   // goto local_label
   // Else Block
-  printf("L%d:\n", local_label);
+  
+  // printf("L%d:\n", local_label);
+
+  struct ir_item item = {0};
+  item.label.label = local_label;
+  add_to_ir_list(&item);
 }
 
 void ir_line(struct ast_line *line)

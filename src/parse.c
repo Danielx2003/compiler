@@ -46,6 +46,7 @@ bool parse_term(
   else if (cur_token.type == LEX_TOKEN_CONSTANT)
   {
     term->type = AST_TERM_TYPE_CONSTANT;
+    printf("Constant Text: %s\n", cur_token.text);
     strcpy(term->id.text, cur_token.text);
     consume_token(lexer_output);
     return true;
