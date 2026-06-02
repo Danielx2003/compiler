@@ -23,7 +23,20 @@ void print_ir_ret(struct ir_ret *ret)
   }
 }
 
-char *op_to_text(enum ast_operator_type op)
+char *ir_op_to_text(enum ir_cond_op op)
+{
+  switch (op)
+  {
+    case IR_COND_OPERATOR_TYPE_EQUIV:
+      return "==";
+    case IR_COND_OPERATOR_TYPE_LESS_THAN:
+      return "<";
+    case IR_COND_OPERATOR_TYPE_GREATER_THAN:
+      return ">";
+  }
+}
+
+char *ast_op_to_text(enum ast_operator_type op)
 {
   switch (op)
   {
@@ -51,6 +64,7 @@ void add_to_ir_list(struct ir_item *item)
 void create_if(int temp, int label)
 {
   struct ir_item item = {0};
+  item.type = IR_ITEM_CONDITIONAL;
   item.conditional.temp = temp;
   item.conditional.label = label;
   add_to_ir_list(&item);
@@ -61,7 +75,8 @@ void create_if(int temp, int label)
 struct ir_ret ir_expr_prime(struct ast_expr_prime *expr_prime)
 {
   struct ir_ret ret = {
-    .type = IR_RET_TYPE_NULL
+    .type = IR_RET_TYPE_NULL,
+    .temp = 0
   };
 
   if (expr_prime == NULL || expr_prime->type == AST_EXPR_PRIME_TYPE_NULL)
@@ -70,34 +85,113 @@ struct ir_ret ir_expr_prime(struct ast_expr_prime *expr_prime)
   }
 
   struct ir_ret expr_prime_ret = ir_expr_prime(expr_prime->expr_prime);
-  ret.temp = ++temp_count;
 
   if (expr_prime->type == AST_EXPR_PRIME_TYPE_TERM_ONLY)
   {
-    ret.type = IR_RET_TYPE_TERM;
-    memcpy(&ret.id, &expr_prime->term.id, sizeof(struct ast_id));
-    return ret;
+    if (expr_prime->term.type == AST_TERM_TYPE_ID)
+    {
+      ret.type = IR_RET_TYPE_TERM;
+      memcpy(&ret.id, &expr_prime->term.id, sizeof(struct ast_id));
+      return ret;
+    }
+    else if (expr_prime->term.type == AST_TERM_TYPE_CONSTANT)
+    {
+      ret.type = IR_RET_TYPE_CONSTANT;
+      ret.temp = expr_prime->term.constant.value;
+      return ret;
+    }
   }
 
   ret.type = IR_RET_TYPE_TEMP;
+  ret.temp = ++temp_count;
   
+  struct ir_item item = {0};
+  item.type = IR_ITEM_ASSIGN;
+
   if (expr_prime_ret.type == IR_RET_TYPE_NULL)
   {
-    struct ir_item item = {0};
     item.assign.type = IR_ASSIGN_VALUE;
     item.assign.value.type = IR_ASSIGN_VALUE_SINGLE;
     item.assign.value.assign_op = IR_ASSIGN_OPERATOR_TYPE_NONE;
+
+    // LHS
+    item.assign.value.lhs.type = IR_TERM_TEMP;
     item.assign.value.lhs.temp = ret.temp;
-    memcpy(item.assign.value.rhs.term_rhs, expr_prime->term.id.text, sizeof(item.assign.value.rhs.term_rhs));
+
+    // RHS
+    item.assign.value.rhs_l.type = IR_TERM_TERM;
+
+    if (expr_prime->term.type == AST_TERM_TYPE_ID)
+    {
+      strcpy(item.assign.value.rhs_l.text, expr_prime->term.id.text); 
+    }
+    else
+    {
+      ret.type = IR_RET_TYPE_CONSTANT;
+      item.assign.value.rhs_l.constant = expr_prime->term.constant.value;
+    }
 
     // printf("t%d = %s", item.assign.value.lhs, item.assign.value.rhs.term_rhs);
   }
   else
   {
+    item.assign.type = IR_ASSIGN_VALUE;
+    item.assign.value.type = IR_ASSIGN_VALUE_DOUBLE;
+    item.assign.value.assign_op = IR_ASSIGN_OPERATOR_TYPE_ADD;
 
+    if (ret.type == IR_RET_TYPE_TEMP)
+    {
+      item.assign.value.lhs.type = IR_TERM_TEMP;
+      item.assign.value.lhs.temp = ret.temp;
+    }
+    else if (ret.type == IR_RET_TYPE_TERM)
+    {  
+      item.assign.value.lhs.type = IR_TERM_TERM;
+      strcpy(item.assign.value.lhs.text, ret.id.text);
+    }
+    else if (ret.type == IR_RET_TYPE_CONSTANT)
+    {
+      printf("error, tried to assign constant to lhs\n");
+    }
+
+
+    if (expr_prime->term.type == AST_TERM_TYPE_ID)
+    {
+      item.assign.value.rhs_l.type = IR_TERM_TERM;
+      strcpy(item.assign.value.rhs_l.text, expr_prime->term.id.text); 
+    }
+    else if (expr_prime->term.type == AST_TERM_TYPE_CONSTANT)
+    {
+      item.assign.value.rhs_l.type = IR_TERM_CONSTANT;
+      item.assign.value.rhs_l.constant = expr_prime->term.constant.value;
+    }
+    // RHS
+
+    if (expr_prime_ret.type == IR_RET_TYPE_TEMP)
+    {
+      item.assign.value.rhs_r.type = IR_TERM_TEMP;
+      item.assign.value.rhs_r.temp = expr_prime_ret.temp;
+    }
+    else if (expr_prime_ret.type == IR_RET_TYPE_TERM)
+    {
+      item.assign.value.rhs_r.type = IR_TERM_TERM;
+      strcpy(item.assign.value.rhs_r.text, expr_prime_ret.id.text);
+    }
+    else if (expr_prime_ret.type == IR_RET_TYPE_CONSTANT)
+    {
+      item.assign.value.rhs_r.type = IR_TERM_CONSTANT;
+      item.assign.value.rhs_r.constant = expr_prime_ret.constant;
+    }
+    
+    /*
+    printf("\n\n");
     printf("t%d = %s + ", ret.temp, expr_prime->term.id.text);
     print_ir_ret(&expr_prime_ret);
+    printf("\n\n");
+    */
   }
+
+  add_to_ir_list(&item);
 
   printf("\n");
 
@@ -109,19 +203,73 @@ struct ir_ret ir_expr(struct ast_expr *expr)
   struct ir_ret ret;
   ret.temp = ++temp_count;
   ret.type = IR_RET_TYPE_TEMP;
+
+  struct ir_item item = {0};
+  item.type = IR_ITEM_ASSIGN;
+
   
   if (expr->expr_prime.type != AST_EXPR_PRIME_TYPE_NULL)
   {
     struct ir_ret expr_prime_ret = ir_expr_prime(&expr->expr_prime);
-    printf("t%d = %s + ", ret.temp, expr->term.id.text);
+
+    item.assign.type = IR_ASSIGN_VALUE;
+    item.assign.value.type = IR_ASSIGN_VALUE_DOUBLE;
+    item.assign.value.assign_op = IR_ASSIGN_OPERATOR_TYPE_ADD;
+
+    // LHS
+    item.assign.value.lhs.temp = ret.temp;
+
+    // RHS
+    if (expr->term.type == AST_TERM_TYPE_ID)
+    {
+      item.assign.value.rhs_l.type = IR_TERM_TERM;
+      strcpy(item.assign.value.rhs_l.text, expr->term.id.text); 
+    }
+    else
+    {
+      item.assign.value.rhs_l.type = IR_TERM_CONSTANT;
+      item.assign.value.rhs_l.constant = expr->term.constant.value;
+    }
+
+
+    if (expr_prime_ret.type == IR_RET_TYPE_TEMP)
+    {
+      item.assign.value.rhs_r.type = IR_TERM_TEMP;
+      item.assign.value.rhs_r.temp = expr_prime_ret.temp;
+    }
+    else if (expr_prime_ret.type == IR_RET_TYPE_TERM)
+    {
+      item.assign.value.rhs_r.type = IR_TERM_TERM;
+      strcpy(item.assign.value.rhs_r.text, expr_prime_ret.id.text);
+    }
+    else if (expr_prime_ret.type == IR_RET_TYPE_CONSTANT)
+    {
+      item.assign.value.rhs_r.type = IR_TERM_CONSTANT;
+      item.assign.value.rhs_r.constant = expr_prime_ret.constant;
+    }
+
+    add_to_ir_list(&item);
+
+
+    /*printf("t%d = %s + ", ret.temp, expr->term.id.text);
     print_ir_ret(&expr_prime_ret);
-    printf("\n");
+    printf("\n");*/
   }
   else
-  { 
-    ret.type = IR_RET_TYPE_TERM;
-    memcpy(&ret.id, &expr->term.id, sizeof(struct ast_id)); 
+  {
+    if (expr->term.type == AST_TERM_TYPE_ID)
+    {
+      ret.type = IR_RET_TYPE_TERM;
+      memcpy(&ret.id, &expr->term.id, sizeof(struct ast_id)); 
+    }
+    else
+    {
+      ret.type = IR_RET_TYPE_CONSTANT;
+      ret.constant = expr->term.constant.value;
+    }
   }
+
+  // Need to move this, defo not the right spot
 
   return ret;
 }
@@ -131,28 +279,102 @@ struct ir_ret ir_assignment(struct ast_assignment *assign)
   struct ir_ret ret;
   ret.temp = ++temp_count;
   struct ir_ret expr_ret = ir_expr(&assign->expr);
-  printf("%s = ", assign->term.id.text);
-  print_ir_ret(&expr_ret);
-  printf("\n");
+
+  struct ir_item item = {0};
+  item.type = IR_ITEM_ASSIGN;
+
+  item.assign.type = IR_ASSIGN_VALUE;
+  item.assign.value.type = IR_ASSIGN_VALUE_SINGLE;
+
+  item.assign.value.lhs.type = IR_TERM_TERM;
+  strcpy(item.assign.value.lhs.text, assign->term.id.text);
+
+  if (expr_ret.type == IR_RET_TYPE_TEMP)
+  {
+    item.assign.value.rhs_l.type = IR_TERM_TEMP;
+    item.assign.value.rhs_l.temp = expr_ret.temp;
+  }
+  else if (expr_ret.type == IR_RET_TYPE_TERM)
+  {
+    item.assign.value.rhs_l.type = IR_TERM_TERM;
+    strcpy(item.assign.value.rhs_l.text, expr_ret.id.text);
+  }
+  else if (expr_ret.type == IR_RET_TYPE_CONSTANT)
+  {
+    item.assign.value.rhs_l.type = IR_TERM_CONSTANT;
+    item.assign.value.rhs_l.constant = expr_ret.constant;
+  }
+
+  add_to_ir_list(&item);
+
+  // printf("%s = ", assign->term.id.text);
+  // print_ir_ret(&expr_ret);
+  // printf("\n");
+}
+
+enum ir_cond_op ast_op_to_ir(enum ast_operator_type ast_op)
+{
+  switch(ast_op)
+  {
+    case AST_OPERATOR_TYPE_EQUIV:
+      return IR_COND_OPERATOR_TYPE_EQUIV;
+    case AST_OPERATOR_TYPE_LESS_THAN:
+      return IR_COND_OPERATOR_TYPE_LESS_THAN;
+    case AST_OPERATOR_TYPE_GREATER_THAN:
+      return IR_COND_OPERATOR_TYPE_GREATER_THAN;
+    default:
+      printf("Invalid AST->IR map\n");
+  }
 }
 
 struct ir_ret ir_condition(struct ast_condition *cond)
 {
   struct ir_ret ret;
-  struct ir_item item;
+  struct ir_item item = {0};
 
-  int temp_local = temp_count;
-  temp_count++;
+  int temp_local = ++temp_count;
 
+  /*
   printf("t%d = %s %s %s \n", 
       temp_local,
       cond->left_term.id.text,
       op_to_text(cond->op),
       cond->right_term.id.text
   );
+  */
 
+  item.type = IR_ITEM_ASSIGN;
   item.assign.type = IR_ASSIGN_CONDITION;
-  item.assign.condition.type = 
+  item.assign.condition.lhs = temp_local;
+
+  if (
+    cond->left_term.type == AST_TERM_TYPE_ID
+    && cond->right_term.type == AST_TERM_TYPE_ID
+  )
+  {
+    item.assign.condition.type = IR_CONDITION_TYPE_TERM_TERM; 
+    item.assign.condition.op = ast_op_to_ir(cond->op);
+    strcpy(item.assign.condition.term_term.term_l, cond->left_term.id.text);
+    strcpy(item.assign.condition.term_term.term_r, cond->right_term.id.text);
+
+    printf("term term\n");
+  }
+  else if (
+    cond->left_term.type == AST_TERM_TYPE_ID
+    && cond->right_term.type == AST_TERM_TYPE_CONSTANT
+  )
+  {
+    item.assign.condition.type = IR_CONDITION_TYPE_TERM_TEMP; 
+    item.assign.condition.op = ast_op_to_ir(cond->op);
+    strcpy(item.assign.condition.term_temp.term, cond->left_term.id.text);
+    item.assign.condition.term_temp.temp = cond->right_term.constant.value;
+  }
+  else
+  {
+    printf("other\n");
+  }
+
+  add_to_ir_list(&item);
 
   ret.type = IR_RET_TYPE_TEMP;
   ret.temp = temp_count;
@@ -180,6 +402,7 @@ void ir_conditional(struct ast_conditional *cond)
   // printf("L%d:\n", local_label);
 
   struct ir_item item = {0};
+  item.type = IR_ITEM_LABEL;
   item.label.label = local_label;
   add_to_ir_list(&item);
 }
@@ -197,11 +420,199 @@ void ir_line(struct ast_line *line)
   }
 }
 
+void print_ir_label(struct ir_label *label)
+{
+  printf("L%d:\n", label->label);
+}
+
+void print_ir_conditional(struct ir_conditional *cond)
+{
+  printf("ifz t%d goto L%d\n", cond->temp, cond->label);
+}
+
+void print_ir_assign_value(struct ir_assign_value *value)
+{
+  switch(value->type)
+  {
+    case IR_ASSIGN_VALUE_SINGLE:
+      // LHS: temp, term, constant
+      // RHS: temp, term, constant
+      if (
+        value->lhs.type == IR_TERM_TEMP
+        && value->rhs_l.type == IR_TERM_TEMP
+      )
+      {
+        printf("t%d = t%d\n", value->lhs.temp, value->rhs_l.temp);
+      }
+      else if (
+        value->lhs.type == IR_TERM_TEMP
+        && value->rhs_l.type == IR_TERM_TERM
+      )
+      {
+        printf("t%d = %s\n", value->lhs.temp, value->rhs_l.text);
+      }
+      else if (
+        value->lhs.type == IR_TERM_TEMP
+        && value->rhs_l.type == IR_TERM_CONSTANT
+      )
+      {
+        printf("t%d = %d\n", value->lhs.temp, value->rhs_l.constant);
+      }
+      // LHS = TERM
+      else if (
+        value->lhs.type == IR_TERM_TERM
+        && value->rhs_l.type == IR_TERM_TEMP
+      )
+      {
+        printf("%s = t%d\n", value->lhs.text, value->rhs_l.temp);
+      }
+      else if (
+        value->lhs.type == IR_TERM_TERM
+        && value->rhs_l.type == IR_TERM_TERM
+      )
+      {
+        printf("%s = %s\n", value->lhs.text, value->rhs_l.text);
+      }
+      else if (
+        value->lhs.type == IR_TERM_TERM
+        && value->rhs_l.type == IR_TERM_CONSTANT
+      )
+      {
+        printf("%s = %d\n", value->lhs.text, value->rhs_l.constant);
+      }
+
+      else 
+      {
+        printf("somehow missed a assign value single pairing\n");
+      }
+      break;
+    case IR_ASSIGN_VALUE_DOUBLE:
+      // LHS: term, temp, constant
+      // RHS_L: term, temp, constant
+      // RHS_R: term, temp, constant
+      //
+      //  temp temp temp
+      //  temp temp term
+      //  temp temp constant
+      //  temp term temp
+      //  temp term term
+      //  temp term constant
+      //  temp constant temp
+      //  temp constant term
+      //  temp constant constant
+      //  term temp temp
+      //  term temp term
+      //  term temp constant
+      //  term term temp
+      //  term term term
+      //  term term constant
+      //  term constant temp
+      //  term constant term
+      //  term constant constant
+      //
+      if ( // temp temp temp
+        value->lhs.type == IR_TERM_TEMP
+        && value->rhs_l.type == IR_TERM_TEMP
+        && value->rhs_r.type == IR_TERM_TEMP
+      )
+      {
+        printf("t%d = t%d + t%d\n", value->lhs.temp, value->rhs_l.temp, value->rhs_r.temp);
+      }
+      else if ( // temp temp term
+        value->lhs.type == IR_TERM_TEMP
+        && value->rhs_l.type == IR_TERM_TEMP
+        && value->rhs_r.type == IR_TERM_TERM
+      )
+      {
+        printf("t%d = t%d + %s\n", value->lhs.temp, value->rhs_l.temp, value->rhs_r.text);
+      }
+      else if ( // temp temp constant
+        value->lhs.type == IR_TERM_TEMP
+        && value->rhs_l.type == IR_TERM_TEMP
+        && value->rhs_r.type == IR_TERM_CONSTANT
+      )
+      {
+        printf("t%d = t%d + %d\n", value->lhs.temp, value->rhs_l.temp, value->rhs_r.constant);
+      }
+      else if ( // temp term temp
+        value->lhs.type == IR_TERM_TEMP
+        && value->rhs_l.type == IR_TERM_TERM
+        && value->rhs_r.type == IR_TERM_TEMP
+      )
+      {
+        printf("t%d = %s + t%d\n", value->lhs.temp, value->rhs_l.text, value->rhs_r.temp);
+      }
+      else if (
+        value->lhs.type == IR_TERM_TEMP
+        && value->rhs_l.type == IR_TERM_CONSTANT
+        && value->rhs_r.type == IR_TERM_CONSTANT
+      )
+      {
+        printf("t%d = %d + %d\n", value->lhs.temp, value->rhs_l.constant, value->rhs_r.constant);
+      }
+      else 
+      {
+        printf("somehow missed a assign value double pairing\n");
+      } 
+      break;
+  }
+}
+
+void print_ir_assign_condition(struct ir_condition *cond)
+{
+  // Update to include constants
+  switch(cond->type)
+  {
+    case IR_CONDITION_TYPE_TEMP_TEMP:
+      printf("t%d = %d %s %d\n", cond->lhs, cond->temp_temp.temp_l, ir_op_to_text(cond->op), cond->temp_temp.temp_r);
+      break;
+    case IR_CONDITION_TYPE_TEMP_TERM:
+      printf("t%d = %d %s %s\n", cond->lhs, cond->temp_term.temp, ir_op_to_text(cond->op), cond->temp_term.term);
+      break;
+    case IR_CONDITION_TYPE_TERM_TEMP:
+      printf("t%d = %s %s %d\n", cond->lhs, cond->term_temp.term, ir_op_to_text(cond->op), cond->term_temp.temp);
+      break;
+    case IR_CONDITION_TYPE_TERM_TERM:
+      printf("t%d = %s %s %s\n", cond->lhs, cond->term_term.term_l, ir_op_to_text(cond->op), cond->term_term.term_r);
+      break;
+  }
+}
+
+void print_ir_assign(struct ir_assign *assign)
+{
+  switch(assign->type)
+  {
+    case IR_ASSIGN_VALUE:
+      print_ir_assign_value(&assign->value);
+      break;
+    case IR_ASSIGN_CONDITION:
+      print_ir_assign_condition(&assign->condition);
+      break;
+  }
+}
+
 void ir_ast(struct ast_root *root)
 {
-  printf("%d Lines: \n", root->num_lines);
+  // printf("%d Lines: \n", root->num_lines);
   for (int i=0; i<root->num_lines; i++)
   {
     ir_line(&root->lines[i]);
   }
+
+  for (int i = 0; i < ir_idx; i++)
+  {
+    switch (ir_list[i].type)
+    {
+      case IR_ITEM_ASSIGN:
+        print_ir_assign(&ir_list[i].assign);
+        break;
+      case IR_ITEM_CONDITIONAL:
+        print_ir_conditional(&ir_list[i].conditional);
+        break;
+      case IR_ITEM_LABEL:
+        print_ir_label(&ir_list[i].label);
+        break;
+    }
+  }
+
 }

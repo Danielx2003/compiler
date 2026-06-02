@@ -1,14 +1,12 @@
 int x = 1 + 2;
-int y = 2;
-int z = 3;
-int f = x + y + z;
-if (x == 5) 
-{ 
-  int a = 1;
-  if (x == 4)
+if (x == 1)
+{
+  int y = 2;
+  int z = 3;
+  if (z == 4)
   {
-    int b = 2;
+    int b = 5;
   }
-  int c = 3;
+  int c = 6;
 }
-int d = 4;
+int d = 7;

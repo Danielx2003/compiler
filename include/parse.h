@@ -38,8 +38,7 @@ struct ast_id {
 };
 
 struct ast_constant {
-  char text[32];
-  size_t text_len;
+  int value;
 };
 
 struct ast_term {

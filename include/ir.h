@@ -14,6 +14,7 @@ void ir_line(struct ast_line *line);
 enum ir_ret_type {
   IR_RET_TYPE_TEMP,
   IR_RET_TYPE_TERM,
+  IR_RET_TYPE_CONSTANT,
   IR_RET_TYPE_NULL
 };
 
@@ -26,6 +27,7 @@ struct ir_ret {
   enum ir_ret_type type;
   union {
     int temp;
+    int constant;
     struct ir_ret_id id;
   };
 };
@@ -55,6 +57,7 @@ enum ir_condition_type {
 struct ir_condition {
   enum ir_condition_type type;
   enum ir_cond_op op;
+  int lhs;
   union {
     struct {
       int temp_l;
@@ -85,17 +88,27 @@ enum ir_assign_value_type {
   IR_ASSIGN_VALUE_DOUBLE
 };
 
-struct ir_assign_value {
-  enum ir_assign_value_type type;
-  enum ir_assign_op assign_op;
+enum ir_term_type {
+  IR_TERM_TEMP,
+  IR_TERM_TERM,
+  IR_TERM_CONSTANT
+};
+
+struct ir_term {
+  enum ir_term_type type;
   union {
     int temp;
-    char term_lhs[32];
-  } lhs;
-  union {
-    int term;
-    char term_rhs[32];
-  } rhs;
+    int constant;
+    char text[32];
+  };
+};
+
+struct ir_assign_value {
+  enum ir_assign_value_type type;
+  enum ir_assign_op assign_op; // Set to NULL when IR_ASSIGN_VALUE_SINGLE
+  struct ir_term lhs;
+  struct ir_term rhs_l;
+  struct ir_term rhs_r; // Set to NULL when IR_ASSIGN_VALUE_SINGLE
 };
 
 struct ir_assign {
@@ -115,7 +128,14 @@ struct ir_label {
   int label;
 };
 
+enum ir_item_type {
+  IR_ITEM_ASSIGN,
+  IR_ITEM_CONDITIONAL,
+  IR_ITEM_LABEL
+};
+
 struct ir_item {
+  enum ir_item_type type;
   union {
     struct ir_conditional conditional;
     struct ir_assign assign;
