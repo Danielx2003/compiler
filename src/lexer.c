@@ -29,6 +29,14 @@ static enum lex_token_type get_token_type_from_text(char *buf)
   if (strcmp(buf, "int") == 0) { return LEX_TOKEN_INT; }
   if (strcmp(buf, "if") == 0) { return LEX_TOKEN_IF; }
   if (strcmp(buf, "==") == 0) { return LEX_TOKEN_EQUIV; }
+  if (strcmp(buf, ">") == 0) { return LEX_TOKEN_GREATER_THAN; }
+  if (strcmp(buf, "<") == 0) { return LEX_TOKEN_GREATER_THAN; }
+  if (strcmp(buf, ")") == 0) { return LEX_TOKEN_CLOSE_BRACKET; }
+  if (strcmp(buf, "(") == 0) { return LEX_TOKEN_OPEN_BRACKET; }
+  if (strcmp(buf, "+") == 0) { return LEX_TOKEN_ADD; }
+  if (strcmp(buf, "=") == 0) { return LEX_TOKEN_EQUAL; }
+  if (strcmp(buf, "-") == 0) { return LEX_TOKEN_SUB; }
+
 
   switch(buf[0])
   {
@@ -43,12 +51,6 @@ static enum lex_token_type get_token_type_from_text(char *buf)
     case '9':
     case '0':
       return LEX_TOKEN_CONSTANT; 
-    case '+':
-      return LEX_TOKEN_ADD;
-    case '-':
-      return LEX_TOKEN_SUB;
-    case '=':
-      return LEX_TOKEN_EQUAL;
   }
 
   return LEX_TOKEN_ID;  
@@ -111,6 +113,129 @@ void create_new_scope(struct scope_stack_t *stack)
   memset(&stack->scopes[stack->top], 0, sizeof(struct scope_t));
 }
 
+struct lex_token_t *create_lex_token(enum lex_token_type type, char *text, size_t text_len, void *ctx, size_t ctx_size)
+{
+  struct lex_token_t *token = (struct lex_token_t *)calloc(1, sizeof(struct lex_token_t));
+  
+  // Type
+  token->type = type;
+  
+  // Text
+  strcpy(token->text, text);
+
+  // Text Len
+  token->text_len = text_len;
+
+  // Ctx
+  if (ctx != NULL)
+  {
+    memcpy(&token->ctx, ctx, ctx_size);
+  }
+
+  return token;
+}
+struct lex_token_t *tokenize_span(int cur, int strt, FILE *file)
+{
+  char buf[32];
+
+  fseek(file, strt, SEEK_SET);
+  fread(buf, sizeof(char), cur-strt, file);
+  fseek(file, cur+1, SEEK_SET);
+    
+  buf[cur-strt] = '\0';
+
+  struct lex_token_t *token_ptr = create_lex_token(
+    get_token_type_from_text(buf),
+    buf,
+    cur-strt,
+    NULL,
+    0
+  );
+
+  return token_ptr;
+}
+
+struct lex_token_t *tokenize_char(int cur, FILE *file)
+{
+  char buf[32];
+
+  fseek(file, cur, SEEK_SET);
+  fread(buf, sizeof(char), 1, file);
+  fseek(file, cur+1, SEEK_SET);
+
+  buf[1] = '\0';
+
+  struct lex_token_t *token_ptr = create_lex_token(
+    get_token_type_from_text(buf),
+    buf,
+    1,
+    NULL,
+    0
+  );
+  
+  return token_ptr;
+}
+
+/*
+
+enum lex_token_type
+struct token_ops {
+  void (*increase_num_lines)(void);
+  void (*tokenize_char)();
+  void (*tokenize_range)();
+}
+*/
+
+struct token_ops {
+  void (*tokenize_char)(int, FILE);
+  void (*tokenize_range)(int, int, FILE);
+};
+
+/*
+
+      case '>':
+      case '<':
+      case '(':
+      case ')':
+      case '+':
+      case '=':
+      case '-':
+      case '}':
+      case '{':
+      case ' ':
+      case '\n':
+      case ';':
+
+
+*/
+
+const struct token_ops TOKEN_REGISTERY[LEX_TOKEN_EOF] = {
+  [LEX_TOKEN_TYPE] = NULL,
+  [LEX_TOKEN_ID] = NULL,
+  [LEX_TOKEN_SEMI_COLON] = { .tokenize_char = tokenize_char, .tokenize_range = tokenize_range },
+  [LEX_TOKEN_WHITESPACE] = { .tokenize_range = tokenize_range },
+  [LEX_TOKEN_RETURN] = NULL,
+  [LEX_TOKEN_CONSTANT] = NULL,
+  [LEX_TOKEN_ADD] = { .tokenize_char = tokenize_char, .tokenize_range = tokenize_range },
+  [LEX_TOKEN_SUB] = { .tokenize_char = tokenize_char, .tokenize_range = tokenize_range },
+  [LEX_TOKEN_INT] = NULL,
+  [LEX_TOKEN_EQUAL] = { .tokenize_char = tokenize_char, .tokenize_range = tokenize_range },
+  [LEX_TOKEN_IF] = NULL,
+  [LEX_TOKEN_OPEN_SCOPE] = { .tokenize_char = tokenize_char, .tokenize_range = tokenize_range },
+  [LEX_TOKEN_CLOSE_SCOPE] = { .tokenize_char = tokenize_char, .tokenize_range = tokenize_range },
+  [LEX_TOKEN_OPEN_BRACKET] = { .tokenize_char = tokenize_char, .tokenize_range = tokenize_range },
+  [LEX_TOKEN_CLOSE_BRACKET] = { .tokenize_char = tokenize_char, .tokenize_range = tokenize_range },
+  [LEX_TOKEN_EQUIV] = NULL,
+  [LEX_TOKEN_LESS_THAN] = { .tokenize_char = tokenize_char, .tokenize_range = tokenize_range },
+  [LEX_TOKEN_GREATER_THAN] = { .tokenize_char = tokenize_char, .tokenize_range = tokenize_range },
+  [LEX_TOKEN_EOF] = NULL
+};
+
+void tokenize(char c)
+{
+  printf("tokenize\n");
+}
+
 int lex_tokenize_stream(
     struct lex_token_list_t *lexer_output,
     char *input,
@@ -141,6 +266,9 @@ int lex_tokenize_stream(
   lexer_output->tokens = (struct lex_token_t*)calloc(lexer_output->total_tokens, sizeof(struct lex_token_t));
   lexer_output->cur_idx = 0;
 
+  char buf[32];
+  struct lex_token_t *token_ptr = NULL;
+
   do
   {
     c = (char)fgetc(file);
@@ -148,47 +276,21 @@ int lex_tokenize_stream(
     switch(c)
     {
       case '>':
-        if (cur-strt > 0)
-        {
-          token.text_len = cur-strt;
-          fseek(file, strt, SEEK_SET);
-          fread(token.text, sizeof(char), cur-strt, file);
-          fseek(file, cur+1, SEEK_SET);
-          token.type = get_token_type_from_text(token.text);
-
-          add_token_to_list(lexer_output, &token);
-          scope_stack.scopes[scope_stack.top].num_tokens++;
-        }
-
-        token.type = LEX_TOKEN_GREATER_THAN;
-        token.text_len = 1;
-        fseek(file, cur, SEEK_SET);
-        fread(token.text, sizeof(char), 1, file);
-        fseek(file, cur+1, SEEK_SET);
-        add_token_to_list(lexer_output, &token);
-        scope_stack.scopes[scope_stack.top].num_tokens++;
-
-        strt = cur+1;
-        break;
       case '<':
+      case '(':
+      case ')':
+      case '+':
+      case '=':
+      case '-':
         if (cur-strt > 0)
         {
-          token.text_len = cur-strt;
-          fseek(file, strt, SEEK_SET);
-          fread(token.text, sizeof(char), cur-strt, file);
-          fseek(file, cur+1, SEEK_SET);
-          token.type = get_token_type_from_text(token.text);
-
-          add_token_to_list(lexer_output, &token);
+          token_ptr = tokenize_span(cur, strt, file);
+          add_token_to_list(lexer_output, token_ptr);
           scope_stack.scopes[scope_stack.top].num_tokens++;
         }
 
-        token.type = LEX_TOKEN_LESS_THAN;
-        token.text_len = 1;
-        fseek(file, cur, SEEK_SET);
-        fread(token.text, sizeof(char), 1, file);
-        fseek(file, cur+1, SEEK_SET);
-        add_token_to_list(lexer_output, &token);
+        token_ptr = tokenize_char(cur, file);
+        add_token_to_list(lexer_output, token_ptr);
         scope_stack.scopes[scope_stack.top].num_tokens++;
 
         strt = cur+1;
@@ -196,30 +298,20 @@ int lex_tokenize_stream(
       case '}':
         if (cur-strt > 0)
         {
-          token.text_len = cur-strt;
-          fseek(file, strt, SEEK_SET);
-          fread(token.text, sizeof(char), cur-strt, file);
-          fseek(file, cur+1, SEEK_SET);
-          token.type = get_token_type_from_text(token.text);
-
-          add_token_to_list(lexer_output, &token);
+          token_ptr = tokenize_span(cur, strt, file);
+          add_token_to_list(lexer_output, token_ptr);
           scope_stack.scopes[scope_stack.top].num_tokens++;
         }
 
-        token.type = LEX_TOKEN_CLOSE_SCOPE;
-        token.text_len = 1;
+        token_ptr = tokenize_char(cur, file);
 
-        fseek(file, cur, SEEK_SET);
-        fread(token.text, sizeof(char), 1, file);
-        fseek(file, cur+1, SEEK_SET);
-        
         struct scope_t *scope_res = pop_scope(&scope_stack);
         
         struct lex_token_t *open_scope_token = get_prev_open_scope_token(lexer_output, scope_res->num_tokens);
         open_scope_token->ctx.num_lines = scope_res->num_lines;
         free(scope_res);
 
-        add_token_to_list(lexer_output, &token);
+        add_token_to_list(lexer_output, token_ptr);
         scope_stack.scopes[scope_stack.top].num_tokens++;
         
         strt = cur+1;
@@ -227,92 +319,14 @@ int lex_tokenize_stream(
       case '{':
         if (cur-strt > 0)
         {
-          token.text_len = cur-strt;
-          fseek(file, strt, SEEK_SET);
-          fread(token.text, sizeof(char), cur-strt, file);
-          fseek(file, cur+1, SEEK_SET);
-          token.type = get_token_type_from_text(token.text);
-
-          add_token_to_list(lexer_output, &token);
+          token_ptr = tokenize_span(cur, strt, file);
+          add_token_to_list(lexer_output, token_ptr);
           scope_stack.scopes[scope_stack.top].num_tokens++;
         }
 
-        token.type = LEX_TOKEN_OPEN_SCOPE;
-        token.text_len = 1;
-        fseek(file, cur, SEEK_SET);
-        fread(token.text, sizeof(char), 1, file);
-        fseek(file, cur+1, SEEK_SET);
+        token_ptr = tokenize_char(cur, file);
         create_new_scope(&scope_stack);
-        add_token_to_list(lexer_output, &token);
-        scope_stack.scopes[scope_stack.top].num_tokens++;
-
-        strt = cur+1;
-        break;
-      case ')':
-        if (cur-strt > 0)
-        {
-          token.text_len = cur-strt;
-          fseek(file, strt, SEEK_SET);
-          fread(token.text, sizeof(char), cur-strt, file);
-          fseek(file, cur+1, SEEK_SET);
-          token.type = get_token_type_from_text(token.text);
-
-          add_token_to_list(lexer_output, &token);
-          scope_stack.scopes[scope_stack.top].num_tokens++;
-        }
-
-        token.type = LEX_TOKEN_CLOSE_BRACKET;
-        token.text_len = 1;
-        fseek(file, cur, SEEK_SET);
-        fread(token.text, sizeof(char), 1, file);
-        fseek(file, cur+1, SEEK_SET);
-        add_token_to_list(lexer_output, &token);
-        scope_stack.scopes[scope_stack.top].num_tokens++;
-
-        strt = cur+1;
-        break;
-      case '(':
-        if (cur-strt > 0)
-        {
-          token.text_len = cur-strt;
-          fseek(file, strt, SEEK_SET);
-          fread(token.text, sizeof(char), cur-strt, file);
-          fseek(file, cur+1, SEEK_SET);
-          token.type = get_token_type_from_text(token.text);
-
-          add_token_to_list(lexer_output, &token);
-          scope_stack.scopes[scope_stack.top].num_tokens++;
-        }
-
-        token.type = LEX_TOKEN_OPEN_BRACKET;
-        token.text_len = 1;
-        fseek(file, cur, SEEK_SET);
-        fread(token.text, sizeof(char), 1, file);
-        fseek(file, cur+1, SEEK_SET);
-        add_token_to_list(lexer_output, &token);
-        scope_stack.scopes[scope_stack.top].num_tokens++;
-
-        strt = cur+1;
-        break;
-      case '+':
-        if (cur-strt > 0)
-        {
-          token.text_len = cur-strt;
-          fseek(file, strt, SEEK_SET);
-          fread(token.text, sizeof(char), cur-strt, file);
-          fseek(file, cur, SEEK_SET);
-          token.type = get_token_type_from_text(token.text);
-
-          add_token_to_list(lexer_output, &token);
-          scope_stack.scopes[scope_stack.top].num_tokens++;
-        }
-
-        token.type = LEX_TOKEN_ADD;
-        token.text_len = 1;
-        fseek(file, cur, SEEK_SET);
-        fread(token.text, sizeof(char), 1, file);
-        fseek(file, cur+1, SEEK_SET);
-        add_token_to_list(lexer_output, &token);
+        add_token_to_list(lexer_output, token_ptr);
         scope_stack.scopes[scope_stack.top].num_tokens++;
 
         strt = cur+1;
@@ -321,13 +335,8 @@ int lex_tokenize_stream(
       case '\n':
         if (cur-strt > 0)
         {
-          token.text_len = cur-strt;
-          fseek(file, strt, SEEK_SET);
-          fread(token.text, sizeof(char), cur-strt, file);
-          fseek(file, cur+1, SEEK_SET);
-          token.type = get_token_type_from_text(token.text);
-
-          add_token_to_list(lexer_output, &token);
+          token_ptr = tokenize_span(cur, strt, file);
+          add_token_to_list(lexer_output, token_ptr);
           scope_stack.scopes[scope_stack.top].num_tokens++;
         }
 
@@ -337,28 +346,19 @@ int lex_tokenize_stream(
         scope_stack.scopes[scope_stack.top].num_lines++;
         if (cur-strt > 0)
         {
-          token.text_len = cur-strt;
-          fseek(file, strt, SEEK_SET);
-          fread(token.text, sizeof(char), cur-strt, file);
-          fseek(file, cur+1, SEEK_SET);
-          token.type = get_token_type_from_text(token.text);
-
-          add_token_to_list(lexer_output, &token);
+          token_ptr = tokenize_span(cur, strt, file);
+          add_token_to_list(lexer_output, token_ptr);
           scope_stack.scopes[scope_stack.top].num_tokens++;
         }
 
-        token.type = LEX_TOKEN_SEMI_COLON;
-        token.text_len = 1;
-        fseek(file, cur, SEEK_SET);
-        fread(token.text, sizeof(char), 1, file);
-        fseek(file, cur+1, SEEK_SET);
-        add_token_to_list(lexer_output, &token);
+        token_ptr = tokenize_char(cur, file);
+        add_token_to_list(lexer_output, token_ptr);
         scope_stack.scopes[scope_stack.top].num_tokens++;
 
         strt = cur+1;
         break;
       default:
-       break; 
+        break;
     }
     cur++;
 
