@@ -45,3 +45,9 @@ int lex_tokenize_stream(
     size_t input_size,
     size_t *token_size
 );
+
+
+enum lex_token_type get_token_type_from_text(char *buf);
+void add_token_to_list(struct lex_token_list_t *lexer_output, struct lex_token_t *new_token);
+struct lex_token_t* get_prev_open_scope_token(struct lex_token_list_t *lexer_output, int tokens_since);
+struct lex_token_t *create_lex_token(enum lex_token_type type, char *text, size_t text_len, void *ctx, size_t ctx_size);
