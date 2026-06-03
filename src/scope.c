@@ -22,26 +22,26 @@ void print_term(struct ast_term *term)
   printf("%s ", term->id.text);
 }
 
-void print_expr_prime(struct ast_expr_prime *expr_prime)
+void print_expr_prime(struct ast_expr_tail *tail)
 {
-  if (expr_prime->expr_prime == NULL || expr_prime->type == AST_EXPR_PRIME_NULL)
+  if (tail->next == NULL || tail->type == AST_EXPR_PRIME_NULL)
   {
     return;
   }
 
-  if (expr_prime->type == AST_EXPR_PRIME_TERM_ONLY)
+  if (tail->type == AST_EXPR_PRIME_TERM_ONLY)
   {
-    print_term(&expr_prime->term);
+    print_term(&tail->term);
     return;
   }
 
-  print_expr_prime(expr_prime->expr_prime);
+  print_expr_prime(tail->next);
 }
 
 void print_expr(struct ast_expr *expr)
 {
   print_term(&expr->term);
-  print_expr_prime(&expr->expr_prime);
+  print_expr_prime(&expr->tail);
 }
 
 
@@ -210,26 +210,26 @@ void scope_term(struct symbol_table_stack_t *stack, struct ast_term *term)
   }
 }
 
-void scope_expr_prime(struct symbol_table_stack_t *stack, struct ast_expr_prime *expr_prime)
+void scope_expr_prime(struct symbol_table_stack_t *stack, struct ast_expr_tail *tail)
 {
-  if (expr_prime->expr_prime == NULL || expr_prime->type == AST_EXPR_PRIME_NULL)
+  if (tail->next == NULL || tail->type == AST_EXPR_PRIME_NULL)
   {
     return;
   }
 
-  if (expr_prime->type == AST_EXPR_PRIME_TERM_ONLY)
+  if (tail->type == AST_EXPR_PRIME_TERM_ONLY)
   {
-    scope_term(stack, &expr_prime->term);
+    scope_term(stack, &tail->term);
     return;
   }
 
-  scope_expr_prime(stack, expr_prime->expr_prime);
+  scope_expr_prime(stack, tail->next);
 }
 
 void scope_expr(struct symbol_table_stack_t *stack, struct ast_expr *expr)
 {
   scope_term(stack, &expr->term);
-  scope_expr_prime(stack, &expr->expr_prime);
+  scope_expr_prime(stack, &expr->tail);
 }
 
 void scope_assignment(struct symbol_table_stack_t *stack, struct ast_assignment *assign)

@@ -25,7 +25,7 @@ void scope_conditional(struct symbol_table_stack_t *stack, struct ast_conditiona
 void scope_term(struct symbol_table_stack_t *stack, struct ast_term *term);
 void scope_expr(struct symbol_table_stack_t *stack, struct ast_expr *expr);
 void scope_body(struct symbol_table_stack_t *stack, struct ast_body *body);
-void scope_expr_prime(struct symbol_table_stack_t *stack, struct ast_expr_prime *expr_prime);
+void scope_expr_prime(struct symbol_table_stack_t *stack, struct ast_expr_tail *tail);
 
 
 /*
@@ -55,5 +55,5 @@ void print_conditional(struct ast_conditional *conditional);
 void print_term(struct ast_term *term);
 void print_expr(struct ast_expr *expr);
 void print_body(struct ast_body *body);
-void print_expr_prime(struct ast_expr_prime *expr_prime);
+void print_expr_prime(struct ast_expr_tail *tail);
 

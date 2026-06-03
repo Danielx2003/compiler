@@ -70,32 +70,32 @@ bool parse_term(
   return true;
 }
 
-bool parse_expr_prime(
+bool parse_expr_tail(
     struct lex_token_list_t *lexer_output,
-    struct ast_expr_prime *expr_prime,
-    struct ast_expr_prime *expr_prime_parent
+    struct ast_expr_tail *tail,
+    struct ast_expr_tail *tail_parent
 )
 {
   if (cur_token.type == LEX_TOKEN_ADD) // change to be any arithmetic later
   {
-    expr_prime->type = AST_EXPR_PRIME_TERM_EXPR;
-    expr_prime->expr_prime = (struct ast_expr_prime*)malloc(sizeof(struct ast_expr_prime));
+    tail->type = AST_EXPR_PRIME_TERM_EXPR;
+    tail->next = (struct ast_expr_tail *)malloc(sizeof(struct ast_expr_tail));
 
     consume_token(lexer_output);
-    if (!parse_term(lexer_output, &expr_prime->term)
-        || !parse_expr_prime(lexer_output, expr_prime->expr_prime, expr_prime))
+    if (!parse_term(lexer_output, &tail->term)
+        || !parse_expr_tail(lexer_output, tail->next, tail))
     {
-      free(expr_prime->expr_prime);
-      expr_prime->expr_prime = NULL;
+      free(tail->next);
+      tail->next = NULL;
       return false;
     }
   }
   else
   {
-    expr_prime->type = AST_EXPR_PRIME_NULL;
-    if (expr_prime_parent != NULL)
+    tail->type = AST_EXPR_PRIME_NULL;
+    if (tail_parent != NULL)
     {
-      expr_prime_parent->type = AST_EXPR_PRIME_TERM_ONLY;
+      tail_parent->type = AST_EXPR_PRIME_TERM_ONLY;
     }
   }
 
@@ -108,7 +108,7 @@ bool parse_expr(
 )
 {
   if (!parse_term(lexer_output, &expr->term)
-      || !parse_expr_prime(lexer_output, &expr->expr_prime, NULL))
+      || !parse_expr_tail(lexer_output, &expr->tail, NULL))
   {
     return false;
   }
@@ -355,18 +355,18 @@ void consume_token(
   peek_token(lexer_output);
 }
 
-void free_ast_expr_prime(struct ast_expr_prime *expr_prime)
+void free_ast_expr_tail(struct ast_expr_tail *tail)
 {
-  if (expr_prime) { return; }
-  free_ast_expr_prime(expr_prime->expr_prime);
+  if (tail) { return; }
+  free_ast_expr_tail(tail->next);
   
-  if (!expr_prime->expr_prime) { return; }
-  free(expr_prime->expr_prime);
+  if (!tail->next) { return; }
+  free(tail->next);
 }
 
 void free_ast_expr(struct ast_expr *expr)
 {
-  free_ast_expr_prime(&expr->expr_prime);
+  free_ast_expr_tail(&expr->tail);
 }
 
 void free_ast_assignment(struct ast_assignment *assign)

@@ -24,6 +24,7 @@ struct ast_term {
   };
 };
 
+/*
 struct ast_expr_prime {
   // Could be worth converting the grammar for op, term, expr' to be a single non-terminal
   enum ast_expr_prime_type type; // Could remove and use NULL for expr_prime_ptr
@@ -31,11 +32,26 @@ struct ast_expr_prime {
   struct ast_term term;
   struct ast_expr_prime *expr_prime;
 };
+*/
 
+struct ast_expr_tail {
+  enum ast_expr_prime_type type;
+  enum ast_op_type op;
+  struct ast_term term;
+  struct ast_expr_tail *next;
+};
+
+struct ast_expr {
+  struct ast_term term;
+  struct ast_expr_tail tail;
+};
+
+/*
 struct ast_expr {
   struct ast_term term;
   struct ast_expr_prime expr_prime;
 };
+*/
 
 
 struct ast_assignment {

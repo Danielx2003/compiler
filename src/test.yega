@@ -4,7 +4,7 @@ if (x == 1)
 {
   int f = 4;
   int d = 11;
-  if (d < 1)
+  if (dh< 1)
   {
     int z = 111;
     if (z > 100)

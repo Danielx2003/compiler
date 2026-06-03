@@ -72,32 +72,32 @@ void create_if(int temp, int label)
   // printf("ifz t%d goto L%d\n", item.conditional.temp, item.conditional.label);
 }
 
-struct ir_ret ir_expr_prime(struct ast_expr_prime *expr_prime)
+struct ir_ret ir_expr_tail(struct ast_expr_tail *tail)
 {
   struct ir_ret ret = {
     .type = IR_RET_TYPE_NULL,
     .temp = 0
   };
 
-  if (expr_prime == NULL || expr_prime->type == AST_EXPR_PRIME_NULL)
+  if (tail == NULL || tail->type == AST_EXPR_PRIME_NULL)
   {
     return ret;
   }
 
-  struct ir_ret expr_prime_ret = ir_expr_prime(expr_prime->expr_prime);
+  struct ir_ret tail_ret = ir_expr_tail(tail->next);
 
-  if (expr_prime->type == AST_EXPR_PRIME_TERM_ONLY)
+  if (tail->type == AST_EXPR_PRIME_TERM_ONLY)
   {
-    if (expr_prime->term.type == AST_TERM_ID)
+    if (tail->term.type == AST_TERM_ID)
     {
       ret.type = IR_RET_TYPE_TERM;
-      memcpy(&ret.id, &expr_prime->term.id, sizeof(struct ast_id));
+      memcpy(&ret.id, &tail->term.id, sizeof(struct ast_id));
       return ret;
     }
-    else if (expr_prime->term.type == AST_TERM_CONSTANT)
+    else if (tail->term.type == AST_TERM_CONSTANT)
     {
       ret.type = IR_RET_TYPE_CONSTANT;
-      ret.temp = expr_prime->term.constant.value;
+      ret.temp = tail->term.constant.value;
       return ret;
     }
   }
@@ -108,7 +108,7 @@ struct ir_ret ir_expr_prime(struct ast_expr_prime *expr_prime)
   struct ir_item item = {0};
   item.type = IR_ITEM_ASSIGN;
 
-  if (expr_prime_ret.type == IR_RET_TYPE_NULL)
+  if (tail_ret.type == IR_RET_TYPE_NULL)
   {
     item.assign.type = IR_ASSIGN_VALUE;
     item.assign.value.type = IR_ASSIGN_VALUE_SINGLE;
@@ -121,14 +121,14 @@ struct ir_ret ir_expr_prime(struct ast_expr_prime *expr_prime)
     // RHS
     item.assign.value.rhs_l.type = IR_TERM_TERM;
 
-    if (expr_prime->term.type == AST_TERM_ID)
+    if (tail->term.type == AST_TERM_ID)
     {
-      strcpy(item.assign.value.rhs_l.text, expr_prime->term.id.text); 
+      strcpy(item.assign.value.rhs_l.text, tail->term.id.text); 
     }
     else
     {
       ret.type = IR_RET_TYPE_CONSTANT;
-      item.assign.value.rhs_l.constant = expr_prime->term.constant.value;
+      item.assign.value.rhs_l.constant = tail->term.constant.value;
     }
 
     // printf("t%d = %s", item.assign.value.lhs, item.assign.value.rhs.term_rhs);
@@ -155,32 +155,32 @@ struct ir_ret ir_expr_prime(struct ast_expr_prime *expr_prime)
     }
 
 
-    if (expr_prime->term.type == AST_TERM_ID)
+    if (tail->term.type == AST_TERM_ID)
     {
       item.assign.value.rhs_l.type = IR_TERM_TERM;
-      strcpy(item.assign.value.rhs_l.text, expr_prime->term.id.text); 
+      strcpy(item.assign.value.rhs_l.text, tail->term.id.text); 
     }
-    else if (expr_prime->term.type == AST_TERM_CONSTANT)
+    else if (tail->term.type == AST_TERM_CONSTANT)
     {
       item.assign.value.rhs_l.type = IR_TERM_CONSTANT;
-      item.assign.value.rhs_l.constant = expr_prime->term.constant.value;
+      item.assign.value.rhs_l.constant = tail->term.constant.value;
     }
     // RHS
 
-    if (expr_prime_ret.type == IR_RET_TYPE_TEMP)
+    if (tail_ret.type == IR_RET_TYPE_TEMP)
     {
       item.assign.value.rhs_r.type = IR_TERM_TEMP;
-      item.assign.value.rhs_r.temp = expr_prime_ret.temp;
+      item.assign.value.rhs_r.temp = tail_ret.temp;
     }
-    else if (expr_prime_ret.type == IR_RET_TYPE_TERM)
+    else if (tail_ret.type == IR_RET_TYPE_TERM)
     {
       item.assign.value.rhs_r.type = IR_TERM_TERM;
-      strcpy(item.assign.value.rhs_r.text, expr_prime_ret.id.text);
+      strcpy(item.assign.value.rhs_r.text, tail_ret.id.text);
     }
-    else if (expr_prime_ret.type == IR_RET_TYPE_CONSTANT)
+    else if (tail_ret.type == IR_RET_TYPE_CONSTANT)
     {
       item.assign.value.rhs_r.type = IR_TERM_CONSTANT;
-      item.assign.value.rhs_r.constant = expr_prime_ret.constant;
+      item.assign.value.rhs_r.constant = tail_ret.constant;
     }
     
     /*
@@ -208,9 +208,9 @@ struct ir_ret ir_expr(struct ast_expr *expr)
   item.type = IR_ITEM_ASSIGN;
 
   
-  if (expr->expr_prime.type != AST_EXPR_PRIME_NULL)
+  if (expr->tail.type != AST_EXPR_PRIME_NULL)
   {
-    struct ir_ret expr_prime_ret = ir_expr_prime(&expr->expr_prime);
+    struct ir_ret tail_ret = ir_expr_tail(&expr->tail);
 
     item.assign.type = IR_ASSIGN_VALUE;
     item.assign.value.type = IR_ASSIGN_VALUE_DOUBLE;
@@ -232,20 +232,20 @@ struct ir_ret ir_expr(struct ast_expr *expr)
     }
 
 
-    if (expr_prime_ret.type == IR_RET_TYPE_TEMP)
+    if (tail_ret.type == IR_RET_TYPE_TEMP)
     {
       item.assign.value.rhs_r.type = IR_TERM_TEMP;
-      item.assign.value.rhs_r.temp = expr_prime_ret.temp;
+      item.assign.value.rhs_r.temp = tail_ret.temp;
     }
-    else if (expr_prime_ret.type == IR_RET_TYPE_TERM)
+    else if (tail_ret.type == IR_RET_TYPE_TERM)
     {
       item.assign.value.rhs_r.type = IR_TERM_TERM;
-      strcpy(item.assign.value.rhs_r.text, expr_prime_ret.id.text);
+      strcpy(item.assign.value.rhs_r.text, tail_ret.id.text);
     }
-    else if (expr_prime_ret.type == IR_RET_TYPE_CONSTANT)
+    else if (tail_ret.type == IR_RET_TYPE_CONSTANT)
     {
       item.assign.value.rhs_r.type = IR_TERM_CONSTANT;
-      item.assign.value.rhs_r.constant = expr_prime_ret.constant;
+      item.assign.value.rhs_r.constant = tail_ret.constant;
     }
 
     add_to_ir_list(&item);

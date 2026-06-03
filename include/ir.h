@@ -8,7 +8,7 @@ void ir_condition_body(struct ast_body *body);
 struct ir_ret ir_condition(struct ast_condition *cond);
 struct ir_ret ir_assignment(struct ast_assignment *assign);
 struct ir_ret ir_expr(struct ast_expr *expr);
-struct ir_ret ir_expr_prime(struct ast_expr_prime *expr_prime);
+struct ir_ret ir_expr_prime(struct ast_expr_tail *tail);
 void ir_line(struct ast_line *line);
 
 enum ir_ret_type {
