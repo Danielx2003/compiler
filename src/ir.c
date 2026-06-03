@@ -36,19 +36,19 @@ char *ir_op_to_text(enum ir_cond_op op)
   }
 }
 
-char *ast_op_to_text(enum ast_operator_type op)
+char *ast_op_to_text(enum ast_op_type op)
 {
   switch (op)
   {
-    case AST_OPERATOR_TYPE_ADD:
+    case AST_OP_ADD:
       return "+";
-    case AST_OPERATOR_TYPE_SUBTRACT:
+    case AST_OP_SUBTRACT:
       return "-";
-    case AST_OPERATOR_TYPE_EQUIV:
+    case AST_OP_EQUIV:
       return "==";
-    case AST_OPERATOR_TYPE_LESS_THAN:
+    case AST_OP_LESS_THAN:
       return "<";
-    case AST_OPERATOR_TYPE_GREATER_THAN:
+    case AST_OP_GREATER_THAN:
       return ">";
     default:
       return "_";
@@ -79,22 +79,22 @@ struct ir_ret ir_expr_prime(struct ast_expr_prime *expr_prime)
     .temp = 0
   };
 
-  if (expr_prime == NULL || expr_prime->type == AST_EXPR_PRIME_TYPE_NULL)
+  if (expr_prime == NULL || expr_prime->type == AST_EXPR_PRIME_NULL)
   {
     return ret;
   }
 
   struct ir_ret expr_prime_ret = ir_expr_prime(expr_prime->expr_prime);
 
-  if (expr_prime->type == AST_EXPR_PRIME_TYPE_TERM_ONLY)
+  if (expr_prime->type == AST_EXPR_PRIME_TERM_ONLY)
   {
-    if (expr_prime->term.type == AST_TERM_TYPE_ID)
+    if (expr_prime->term.type == AST_TERM_ID)
     {
       ret.type = IR_RET_TYPE_TERM;
       memcpy(&ret.id, &expr_prime->term.id, sizeof(struct ast_id));
       return ret;
     }
-    else if (expr_prime->term.type == AST_TERM_TYPE_CONSTANT)
+    else if (expr_prime->term.type == AST_TERM_CONSTANT)
     {
       ret.type = IR_RET_TYPE_CONSTANT;
       ret.temp = expr_prime->term.constant.value;
@@ -121,7 +121,7 @@ struct ir_ret ir_expr_prime(struct ast_expr_prime *expr_prime)
     // RHS
     item.assign.value.rhs_l.type = IR_TERM_TERM;
 
-    if (expr_prime->term.type == AST_TERM_TYPE_ID)
+    if (expr_prime->term.type == AST_TERM_ID)
     {
       strcpy(item.assign.value.rhs_l.text, expr_prime->term.id.text); 
     }
@@ -155,12 +155,12 @@ struct ir_ret ir_expr_prime(struct ast_expr_prime *expr_prime)
     }
 
 
-    if (expr_prime->term.type == AST_TERM_TYPE_ID)
+    if (expr_prime->term.type == AST_TERM_ID)
     {
       item.assign.value.rhs_l.type = IR_TERM_TERM;
       strcpy(item.assign.value.rhs_l.text, expr_prime->term.id.text); 
     }
-    else if (expr_prime->term.type == AST_TERM_TYPE_CONSTANT)
+    else if (expr_prime->term.type == AST_TERM_CONSTANT)
     {
       item.assign.value.rhs_l.type = IR_TERM_CONSTANT;
       item.assign.value.rhs_l.constant = expr_prime->term.constant.value;
@@ -208,7 +208,7 @@ struct ir_ret ir_expr(struct ast_expr *expr)
   item.type = IR_ITEM_ASSIGN;
 
   
-  if (expr->expr_prime.type != AST_EXPR_PRIME_TYPE_NULL)
+  if (expr->expr_prime.type != AST_EXPR_PRIME_NULL)
   {
     struct ir_ret expr_prime_ret = ir_expr_prime(&expr->expr_prime);
 
@@ -220,7 +220,7 @@ struct ir_ret ir_expr(struct ast_expr *expr)
     item.assign.value.lhs.temp = ret.temp;
 
     // RHS
-    if (expr->term.type == AST_TERM_TYPE_ID)
+    if (expr->term.type == AST_TERM_ID)
     {
       item.assign.value.rhs_l.type = IR_TERM_TERM;
       strcpy(item.assign.value.rhs_l.text, expr->term.id.text); 
@@ -257,7 +257,7 @@ struct ir_ret ir_expr(struct ast_expr *expr)
   }
   else
   {
-    if (expr->term.type == AST_TERM_TYPE_ID)
+    if (expr->term.type == AST_TERM_ID)
     {
       ret.type = IR_RET_TYPE_TERM;
       memcpy(&ret.id, &expr->term.id, sizeof(struct ast_id)); 
@@ -312,15 +312,15 @@ struct ir_ret ir_assignment(struct ast_assignment *assign)
   // printf("\n");
 }
 
-enum ir_cond_op ast_op_to_ir(enum ast_operator_type ast_op)
+enum ir_cond_op ast_op_to_ir(enum ast_op_type ast_op)
 {
   switch(ast_op)
   {
-    case AST_OPERATOR_TYPE_EQUIV:
+    case AST_OP_EQUIV:
       return IR_COND_OPERATOR_TYPE_EQUIV;
-    case AST_OPERATOR_TYPE_LESS_THAN:
+    case AST_OP_LESS_THAN:
       return IR_COND_OPERATOR_TYPE_LESS_THAN;
-    case AST_OPERATOR_TYPE_GREATER_THAN:
+    case AST_OP_GREATER_THAN:
       return IR_COND_OPERATOR_TYPE_GREATER_THAN;
     default:
       printf("Invalid AST->IR map\n");
@@ -348,8 +348,8 @@ struct ir_ret ir_condition(struct ast_condition *cond)
   item.assign.condition.lhs = temp_local;
 
   if (
-    cond->left_term.type == AST_TERM_TYPE_ID
-    && cond->right_term.type == AST_TERM_TYPE_ID
+    cond->left_term.type == AST_TERM_ID
+    && cond->right_term.type == AST_TERM_ID
   )
   {
     item.assign.condition.type = IR_CONDITION_TYPE_TERM_TERM; 
@@ -360,8 +360,8 @@ struct ir_ret ir_condition(struct ast_condition *cond)
     printf("term term\n");
   }
   else if (
-    cond->left_term.type == AST_TERM_TYPE_ID
-    && cond->right_term.type == AST_TERM_TYPE_CONSTANT
+    cond->left_term.type == AST_TERM_ID
+    && cond->right_term.type == AST_TERM_CONSTANT
   )
   {
     item.assign.condition.type = IR_CONDITION_TYPE_TERM_TEMP; 
@@ -381,7 +381,7 @@ struct ir_ret ir_condition(struct ast_condition *cond)
   return ret;
 }
 
-void ir_condition_body(struct ast_condition_body *body)
+void ir_condition_body(struct ast_body *body)
 {
   for (int i = 0; i < body->num_lines; i++)
   {
@@ -412,10 +412,10 @@ void ir_line(struct ast_line *line)
   switch(line->type)
   {
     case AST_LINE_CONDITIONAL:
-      ir_conditional(&line->ctx.conditional);
+      ir_conditional(&line->conditional);
       break;
     case AST_LINE_ASSIGNMENT:
-      ir_assignment(&line->ctx.assignment);
+      ir_assignment(&line->assignment);
       break;
   }
 }
@@ -591,7 +591,7 @@ void print_ir_assign(struct ir_assign *assign)
   }
 }
 
-void ir_ast(struct ast_root *root)
+void ir_ast(struct ast_body *root)
 {
   // printf("%d Lines: \n", root->num_lines);
   for (int i=0; i<root->num_lines; i++)

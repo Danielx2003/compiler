@@ -1,6 +1,16 @@
 int x = 1 + 2;
+
 if (x == 1)
 {
-  int y = 2;
+  int f = 4;
+  int d = 11;
+  if (d < 1)
+  {
+    int z = 111;
+    if (z > 100)
+    {
+      int f = 1;
+      int gall = 141;
+    }
+  }
 }
-int d = 7;

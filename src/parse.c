@@ -38,14 +38,14 @@ bool parse_term(
 {
   if (cur_token.type == LEX_TOKEN_ID)
   {
-    term->type = AST_TERM_TYPE_ID;
+    term->type = AST_TERM_ID;
     strcpy(term->id.text, cur_token.text);
     consume_token(lexer_output);
     return true;
   }
   else if (cur_token.type == LEX_TOKEN_CONSTANT)
   {
-    term->type = AST_TERM_TYPE_CONSTANT;
+    term->type = AST_TERM_CONSTANT;
     term->constant.value = atoi(cur_token.text);
     consume_token(lexer_output);
     return true;
@@ -78,7 +78,7 @@ bool parse_expr_prime(
 {
   if (cur_token.type == LEX_TOKEN_ADD) // change to be any arithmetic later
   {
-    expr_prime->type = AST_EXPR_PRIME_TYPE_TERM_EXPR;
+    expr_prime->type = AST_EXPR_PRIME_TERM_EXPR;
     expr_prime->expr_prime = (struct ast_expr_prime*)malloc(sizeof(struct ast_expr_prime));
 
     consume_token(lexer_output);
@@ -92,10 +92,10 @@ bool parse_expr_prime(
   }
   else
   {
-    expr_prime->type = AST_EXPR_PRIME_TYPE_NULL;
+    expr_prime->type = AST_EXPR_PRIME_NULL;
     if (expr_prime_parent != NULL)
     {
-      expr_prime_parent->type = AST_EXPR_PRIME_TYPE_TERM_ONLY;
+      expr_prime_parent->type = AST_EXPR_PRIME_TERM_ONLY;
     }
   }
 
@@ -168,19 +168,19 @@ bool parse_assignment(
 
 bool parse_op(
    struct lex_token_list_t *lexer_output,
-   enum ast_operator_type *op
+   enum ast_op_type *op
 )
 {
   switch (cur_token.type)
   {
     case LEX_TOKEN_EQUIV:
-      *op = AST_OPERATOR_TYPE_EQUIV;
+      *op = AST_OP_EQUIV;
       break;
     case LEX_TOKEN_LESS_THAN:
-      *op = AST_OPERATOR_TYPE_LESS_THAN;
+      *op = AST_OP_LESS_THAN;
       break;
     case LEX_TOKEN_GREATER_THAN:
-      *op = AST_OPERATOR_TYPE_GREATER_THAN;
+      *op = AST_OP_GREATER_THAN;
       break;
     default:
       printf("Invalid operator\n");
@@ -225,7 +225,7 @@ bool parse_condition(
 
 bool parse_condition_body(
   struct lex_token_list_t *lexer_output,
-  struct ast_condition_body *body
+  struct ast_body *body
 )
 {
   body->lines = (struct ast_line*)calloc(cur_token.ctx.num_lines, sizeof(struct ast_line));
@@ -306,21 +306,21 @@ void parse_line(
   {
     line->type = AST_LINE_CONDITIONAL;
     consume_token(lexer_output);
-    parse_if(lexer_output, &line->ctx.conditional);
+    parse_if(lexer_output, &line->conditional);
   }
   else
   {
     line->type = AST_LINE_ASSIGNMENT;
-    parse_assignment(lexer_output, &line->ctx.assignment);
+    parse_assignment(lexer_output, &line->assignment);
   }
 }
 
-struct ast_root* parse_lexer_tokens(struct lex_token_list_t *lexer_output, int num_lines)
+struct ast_body* parse_lexer_tokens(struct lex_token_list_t *lexer_output, int num_lines)
 {
   // Using the cur_idx produces side effects -> consider a different method later
   
   lexer_output->cur_idx = 0;
-  struct ast_root *root = (struct ast_root *)calloc(1, sizeof(struct ast_root));
+  struct ast_body *root = (struct ast_body *)calloc(1, sizeof(struct ast_body));
   root->num_lines = num_lines;
 
   root->lines = (struct ast_line *)malloc(sizeof(struct ast_line) * num_lines);
@@ -376,10 +376,10 @@ void free_ast_assignment(struct ast_assignment *assign)
 
 void free_ast_line(struct ast_line *line)
 {
-  free_ast_assignment(&line->ctx.assignment);
+  free_ast_assignment(&line->assignment);
 }
 
-void free_ast(struct ast_root *root)
+void free_ast(struct ast_body *root)
 {
   for (int i=0; i<root->num_lines; i++)
   {

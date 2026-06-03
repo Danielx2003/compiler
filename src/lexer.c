@@ -111,7 +111,6 @@ int lex_tokenize_stream(
   lexer_output->tokens = (struct lex_token_t*)calloc(lexer_output->total_tokens, sizeof(struct lex_token_t));
   lexer_output->cur_idx = 0;
 
-  char buf[32];
   struct lex_token_t *token_ptr = NULL;
 
   do

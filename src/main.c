@@ -8,7 +8,7 @@
 
 struct compiler {
   struct lex_token_list_t lexer_output;
-  struct ast_root root;
+  struct ast_body body;
 };
 
 int main()
@@ -34,16 +34,15 @@ int main()
   }
   printf("\n");
  
-  /*
-  struct ast_root *root = parse_lexer_tokens(&lexer_output, num_lines);
-  if (!scope_res(root))
+  
+  struct ast_body *body = parse_lexer_tokens(&lexer_output, num_lines);
+  if (!scope_res(body))
   {
     printf("Failed to resolve variable\n");
     return -1;
   }
 
-  ir_ast(root);
-  */
+  // ir_ast(root);
   // free(root);
   // free(lexer_output.tokens); 
 }

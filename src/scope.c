@@ -9,7 +9,7 @@
 int indent = 0;
 bool scope_error = false;
 
-void print_body(struct ast_condition_body *body)
+void print_body(struct ast_body *body)
 {
   for (int i = 0; i < body->num_lines; i++)
   {
@@ -24,12 +24,12 @@ void print_term(struct ast_term *term)
 
 void print_expr_prime(struct ast_expr_prime *expr_prime)
 {
-  if (expr_prime->expr_prime == NULL || expr_prime->type == AST_EXPR_PRIME_TYPE_NULL)
+  if (expr_prime->expr_prime == NULL || expr_prime->type == AST_EXPR_PRIME_NULL)
   {
     return;
   }
 
-  if (expr_prime->type == AST_EXPR_PRIME_TYPE_TERM_ONLY)
+  if (expr_prime->type == AST_EXPR_PRIME_TERM_ONLY)
   {
     print_term(&expr_prime->term);
     return;
@@ -69,7 +69,7 @@ void print_line(struct ast_line *line)
 {
   if (line->type == AST_LINE_ASSIGNMENT)
   {
-    print_assignment(&line->ctx.assignment);
+    print_assignment(&line->assignment);
   }
   else if (line->type == AST_LINE_CONDITIONAL)
   {
@@ -78,12 +78,12 @@ void print_line(struct ast_line *line)
       printf("-");
     }
     printf("If Statement\n");
-    print_conditional(&line->ctx.conditional);
+    print_conditional(&line->conditional);
     printf("\n");
   }
 }
 
-void print_root(struct ast_root *root)
+void print_root(struct ast_body *root)
 {
   for (int i = 0; i < root->num_lines; i++)
   {
@@ -141,7 +141,7 @@ void set_symbol_table_stack_size(struct symbol_table_stack_t *stack, int size)
 
 void add_to_scope(struct symbol_table_stack_t *stack, struct ast_term *term)
 {
-  if (term->type != AST_TERM_TYPE_ID)
+  if (term->type != AST_TERM_ID)
   {
     return;
   }
@@ -190,7 +190,7 @@ void pop_symbol_table_stack(struct symbol_table_stack_t *stack)
   stack->top--;
 }
 
-void scope_body(struct symbol_table_stack_t *stack, struct ast_condition_body *body)
+void scope_body(struct symbol_table_stack_t *stack, struct ast_body *body)
 {
   for (int i = 0; i < body->num_lines; i++)
   {
@@ -200,7 +200,7 @@ void scope_body(struct symbol_table_stack_t *stack, struct ast_condition_body *b
 
 void scope_term(struct symbol_table_stack_t *stack, struct ast_term *term)
 {
-  if (term->type == AST_TERM_TYPE_ID)
+  if (term->type == AST_TERM_ID)
   {
     if (!scope_lookup(stack, term->id.text))
     {
@@ -212,12 +212,12 @@ void scope_term(struct symbol_table_stack_t *stack, struct ast_term *term)
 
 void scope_expr_prime(struct symbol_table_stack_t *stack, struct ast_expr_prime *expr_prime)
 {
-  if (expr_prime->expr_prime == NULL || expr_prime->type == AST_EXPR_PRIME_TYPE_NULL)
+  if (expr_prime->expr_prime == NULL || expr_prime->type == AST_EXPR_PRIME_NULL)
   {
     return;
   }
 
-  if (expr_prime->type == AST_EXPR_PRIME_TYPE_TERM_ONLY)
+  if (expr_prime->type == AST_EXPR_PRIME_TERM_ONLY)
   {
     scope_term(stack, &expr_prime->term);
     return;
@@ -256,15 +256,15 @@ void scope_line(struct symbol_table_stack_t *stack, struct ast_line *line)
 {
   if (line->type == AST_LINE_ASSIGNMENT)
   {
-    scope_assignment(stack, &line->ctx.assignment);
+    scope_assignment(stack, &line->assignment);
   }
   else if (line->type == AST_LINE_CONDITIONAL)
   {
-    scope_conditional(stack, &line->ctx.conditional);
+    scope_conditional(stack, &line->conditional);
   }
 }
 
-void scope_root(struct symbol_table_stack_t *stack, struct ast_root *root)
+void scope_root(struct symbol_table_stack_t *stack, struct ast_body *root)
 {
   for (int i = 0; i < root->num_lines; i++)
   {
@@ -272,7 +272,7 @@ void scope_root(struct symbol_table_stack_t *stack, struct ast_root *root)
   }
 }
 
-bool scope_res(struct ast_root *root)
+bool scope_res(struct ast_body *root)
 {
   struct symbol_table_stack_t stack = {0};
   if (!initialise_symbol_table_stack(&stack))
