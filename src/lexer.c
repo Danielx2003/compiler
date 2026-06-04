@@ -91,39 +91,18 @@ struct lex_token_t *create_lex_token(enum lex_token_type type, char *text, size_
 }
 
 int lex_tokenize_stream(
-    struct lex_token_list_t *lexer_output,
-    char *input,
-    size_t input_size,
-    size_t *token_size
+  struct lex_token_list_t *lexer_output,
+  struct char_stream *stream
 )
-{
-  /*
-  char *file_name = "test.yega";
-  struct file_iterator *it = create_file_iterator(file_name);
-  */
-
-  FILE *file;
-  file = fopen("test.yega", "r");
-  if (file == NULL)
-  {
-    printf("Failed to open file\n");
-    return 0;
-  }
-
-  struct file_stream_state file_state = {0};
-  struct char_stream file_stream = char_stream_from_file(&file_state, file);
-  
+{  
   init_scope_stack(&scope_stack);
 
   lexer_output->tokens = (struct lex_token_t*)calloc(lexer_output->total_tokens, sizeof(struct lex_token_t));
   lexer_output->cur_idx = 0;
 
-  struct lex_token_t *token_ptr = NULL;
-
   do
   {
-    // c = (char)fgetc(file);
-    c = file_stream.api->consume(file_stream.self);
+    c = stream->api->consume(stream->self);
     
     switch(c)
     {
@@ -136,14 +115,15 @@ int lex_tokenize_stream(
       case ';':
       case '}':
       case '{':
-        tokenize(lexer_output, c, &file_stream);
+        tokenize(lexer_output, c, stream);
 
-        file_stream.api->reset_window(
-          file_stream.self
+        // start = cur
+        stream->api->reset_window(
+          stream->self
         );
 
-        file_stream.api->advance_start(
-          file_stream.self, 
+        stream->api->advance_start(
+          stream->self, 
           1
         );
 
@@ -151,8 +131,8 @@ int lex_tokenize_stream(
       default:
         break;
     }
-    file_stream.api->advance_cur(
-      file_stream.self,
+    stream->api->advance_cur(
+      stream->self,
       1
     );
 

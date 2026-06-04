@@ -1,6 +1,8 @@
-#include <stddef.h>
-
 #pragma once
+
+#include "char_stream.h"
+
+#include <stddef.h>
 
 enum lex_token_type {
   LEX_TOKEN_TYPE,
@@ -40,10 +42,8 @@ struct lex_token_list_t {
 };
 
 int lex_tokenize_stream(
-    struct lex_token_list_t *lexer_output,
-    char *input,
-    size_t input_size,
-    size_t *token_size
+  struct lex_token_list_t *lexer_output,
+  struct char_stream *stream
 );
 
 

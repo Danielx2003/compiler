@@ -14,25 +14,24 @@ struct compiler {
 
 int main()
 {
-  /*
-  char *file_name = "test.yega";
-  struct file_iterator *it = create_file_iterator(file_name);
-  */
+  FILE *file;
+  file = fopen("test.yega", "r");
+  if (file == NULL)
+  {
+    printf("Failed to open file\n");
+    return 0;
+  }
 
-  
+  struct file_stream_state file_state = {0};
+  struct char_stream file_stream = char_stream_from_file(&file_state, file);
 
   struct lex_token_list_t lexer_output = {0};
   lexer_output.total_tokens = 256;
   lexer_output.cur_idx = 0;
 
-  char text[256] = "int x = 5; if (x == 5) { int y = 5; }";
-
-  size_t token_list_len;
   int num_lines = lex_tokenize_stream(
-      &lexer_output,
-      text,
-      sizeof(text),
-      &token_list_len
+    &lexer_output,
+    &file_stream
   );
  
   for (int i = 0; i < lexer_output.cur_idx ; i++)
@@ -50,7 +49,7 @@ int main()
     return -1;
   }
 
-  // ir_ast(body);
+  ir_ast(body);
   // free(root);
   // free(lexer_output.tokens); 
 }

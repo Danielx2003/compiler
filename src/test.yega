@@ -2,7 +2,7 @@ int x = 1 + 2 + 3;
 if (x == 1)
 {
   int d = 2;
-  if (z == 4)
+  if (d == 4)
   {
     int a = 1;
   }
