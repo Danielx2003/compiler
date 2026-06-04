@@ -6,7 +6,7 @@
 
 #include <stdio.h>
 
-void tokenize(struct lex_token_list_t *lexer_output, char c, struct char_stream *stream);
+void tokenize(struct lex_token_stream *lexer_output, char c, struct char_stream *stream);
 struct lex_token_t *tokenize_char(struct char_stream *stream);
 // struct lex_token_t *tokenize_span(int cur, int strt, FILE *file);
 struct lex_token_t *tokenize_span(struct char_stream *stream);

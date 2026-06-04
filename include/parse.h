@@ -69,15 +69,15 @@ struct ast_line {
 void free_ast(struct ast_body *root);
 
 struct ast_body* parse_lexer_tokens(
-  struct lex_token_list_t *lexer_output,
+  struct lex_token_stream *lexer_output,
   int nun_lines
 );
 
-void peek_token(struct lex_token_list_t *lexer_output);
+void peek_token(struct lex_token_stream *lexer_output);
 
-void consume_token(struct lex_token_list_t *lexer_output);
+void consume_token(struct lex_token_stream *lexer_output);
 
 void parse_line(
-  struct lex_token_list_t *lexer_output,
+  struct lex_token_stream *lexer_output,
   struct ast_line *line
 );

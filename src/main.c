@@ -3,12 +3,13 @@
 #include "scope.h"
 #include "ir.h"
 #include "file_stream.h"
+#include "parse.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 
 struct compiler {
-  struct lex_token_list_t lexer_output;
+  struct lex_token_stream lexer_output;
   struct ast_body body;
 };
 
@@ -25,23 +26,24 @@ int main()
   struct file_stream_state file_state = {0};
   struct char_stream file_stream = char_stream_from_file(&file_state, file);
 
-  struct lex_token_list_t lexer_output = {0};
-  lexer_output.total_tokens = 256;
-  lexer_output.cur_idx = 0;
+  struct lex_token_stream tokens = {
+    .capacity = 256,
+    .cur_idx = 0,
+  };
 
   int num_lines = lex_tokenize_stream(
-    &lexer_output,
+    &tokens,
     &file_stream
   );
  
-  for (int i = 0; i < lexer_output.cur_idx ; i++)
+  for (int i = 0; i < tokens.cur_idx ; i++)
   {
-    printf("Token Type: %d --- Text: %*s\n", lexer_output.tokens[i].type, lexer_output.tokens[i].text_len, lexer_output.tokens[i].text);
+    printf("Token Type: %d --- Text: %*s\n", tokens.data[i].type, tokens.data[i].text_len, tokens.data[i].text);
   }
   printf("\n");
  
   
-  struct ast_body *body = parse_lexer_tokens(&lexer_output, num_lines);
+  struct ast_body *body = parse_lexer_tokens(&tokens, num_lines);
   
   if (!scope_res(body))
   {
@@ -49,7 +51,7 @@ int main()
     return -1;
   }
 
-  ir_ast(body);
+  // ir_ast(body);
   // free(root);
   // free(lexer_output.tokens); 
 }

@@ -16,22 +16,22 @@ struct lex_token_t token = {0};
 struct scope_stack_t scope_stack = {0};
 
 
-void add_token_to_list(struct lex_token_list_t *lexer_output, struct lex_token_t *new_token)
+void add_token_to_list(struct lex_token_stream *tokens, struct lex_token_t *new_token)
 {
-  if (lexer_output->cur_idx >= lexer_output->total_tokens) // Increase size
+  if (tokens->cur_idx >= tokens->capacity) // Increase size
   {
-    lexer_output->total_tokens = lexer_output->total_tokens * 2;
-    lexer_output->tokens = realloc(lexer_output->tokens, lexer_output->total_tokens + 1);
+    tokens->capacity = tokens->capacity * 2;
+    tokens->data= realloc(tokens->data, tokens->capacity + 1);
   }
 
   memcpy(
-      &lexer_output->tokens[lexer_output->cur_idx], 
+      &tokens->data[tokens->cur_idx], 
       new_token,
       sizeof(struct lex_token_t)
   );
   memset(new_token, 0, sizeof(struct lex_token_t));
 
-  lexer_output->cur_idx += 1;
+  tokens->cur_idx += 1;
 }
 
 enum lex_token_type get_token_type_from_text(char *buf)
@@ -69,14 +69,14 @@ enum lex_token_type get_token_type_from_text(char *buf)
   return LEX_TOKEN_ID;  
 }
 
-struct lex_token_t* get_prev_open_scope_token(struct lex_token_list_t *lexer_output, int tokens_since)
+struct lex_token_t* get_prev_open_scope_token(struct lex_token_stream *tokens, int tokens_since)
 {
-  if (lexer_output->cur_idx - tokens_since < 0)
+  if (tokens->cur_idx - tokens_since < 0)
   {
     return NULL;
   }
   
-  return &lexer_output->tokens[lexer_output->cur_idx - tokens_since];
+  return &tokens->data[tokens->cur_idx - tokens_since];
 }
 
 struct lex_token_t *create_lex_token(enum lex_token_type type, char *text, size_t text_len, void *ctx, size_t ctx_size)
@@ -91,14 +91,14 @@ struct lex_token_t *create_lex_token(enum lex_token_type type, char *text, size_
 }
 
 int lex_tokenize_stream(
-  struct lex_token_list_t *lexer_output,
+  struct lex_token_stream *tokens,
   struct char_stream *stream
 )
 {  
   init_scope_stack(&scope_stack);
 
-  lexer_output->tokens = (struct lex_token_t*)calloc(lexer_output->total_tokens, sizeof(struct lex_token_t));
-  lexer_output->cur_idx = 0;
+  tokens->data = (struct lex_token_t*)calloc(tokens->capacity, sizeof(struct lex_token_t));
+  tokens->cur_idx = 0;
 
   do
   {
@@ -115,7 +115,7 @@ int lex_tokenize_stream(
       case ';':
       case '}':
       case '{':
-        tokenize(lexer_output, c, stream);
+        tokenize(tokens, c, stream);
 
         // start = cur
         stream->api->reset_window(
@@ -140,7 +140,7 @@ int lex_tokenize_stream(
   printf("\n");
 
   token.type = LEX_TOKEN_EOF;
-  add_token_to_list(lexer_output, &token);
+  add_token_to_list(tokens, &token);
 
   if (num_lines == 0) { num_lines++; } 
 

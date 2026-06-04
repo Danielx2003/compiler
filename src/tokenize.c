@@ -60,7 +60,7 @@ struct lex_token_t *tokenize_char(struct char_stream *stream)
 }
 
 
-void tokenize(struct lex_token_list_t *lexer_output, char c, struct char_stream *stream)
+void tokenize(struct lex_token_stream *lexer_output, char c, struct char_stream *stream)
 {
   struct token_ops ops = TOKEN_REGISTERY[c];
   struct lex_token_t *token_ptr = NULL;
