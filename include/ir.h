@@ -143,38 +143,3 @@ struct ir_item {
   };
 };
 
-/*
-assign:
-= num:
-- temp = 
-- term = 
-
-= condtion:
- - temp = 
- - term = 
-
-
-branch/conditional:
-- temp
-- goto label
-
-label:
-- label
- */
-
-
-/*
-x = 1
-t3 = x == 5
-ifz t3 goto L1
-a = 1
-t6 = x == 4 
-ifz t6 goto L2
-b = 2
-L2:
-c = 3
-L1:
-d = 4
-*/
-
-

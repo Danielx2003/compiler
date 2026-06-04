@@ -1,6 +1,7 @@
 #include "lexer.h"
 #include "scope_2.h"
 #include "tokenize.h"
+#include "file_stream.h"
 
 #include <stddef.h>
 #include <stdlib.h>
@@ -9,9 +10,7 @@
 #include <stdbool.h>
 
 /* Globals */
-int strt = 0;
 int num_lines = 0;
-int cur = 0;
 char c;
 struct lex_token_t token = {0};
 struct scope_stack_t scope_stack = {0};
@@ -98,6 +97,11 @@ int lex_tokenize_stream(
     size_t *token_size
 )
 {
+  /*
+  char *file_name = "test.yega";
+  struct file_iterator *it = create_file_iterator(file_name);
+  */
+
   FILE *file;
   file = fopen("test.yega", "r");
   if (file == NULL)
@@ -106,6 +110,9 @@ int lex_tokenize_stream(
     return 0;
   }
 
+  struct file_stream_state file_state = {0};
+  struct char_stream file_stream = char_stream_from_file(&file_state, file);
+  
   init_scope_stack(&scope_stack);
 
   lexer_output->tokens = (struct lex_token_t*)calloc(lexer_output->total_tokens, sizeof(struct lex_token_t));
@@ -115,7 +122,8 @@ int lex_tokenize_stream(
 
   do
   {
-    c = (char)fgetc(file);
+    // c = (char)fgetc(file);
+    c = file_stream.api->consume(file_stream.self);
     
     switch(c)
     {
@@ -128,13 +136,25 @@ int lex_tokenize_stream(
       case ';':
       case '}':
       case '{':
-        tokenize(lexer_output, c, cur, strt, file);
-        strt = cur+1;
+        tokenize(lexer_output, c, &file_stream);
+
+        file_stream.api->reset_window(
+          file_stream.self
+        );
+
+        file_stream.api->advance_start(
+          file_stream.self, 
+          1
+        );
+
         break;
       default:
         break;
     }
-    cur++;
+    file_stream.api->advance_cur(
+      file_stream.self,
+      1
+    );
 
   } while (c != EOF);
   printf("\n");

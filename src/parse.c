@@ -113,8 +113,11 @@ bool parse_expr_tail(
   }
   else 
   {
-    free(tail_parent->next);
-    tail_parent->next = NULL;
+    if (tail_parent)
+    {
+      free(tail_parent->next);
+      tail_parent->next = NULL;
+    }
     tail = NULL;
   }
 

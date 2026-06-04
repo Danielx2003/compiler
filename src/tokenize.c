@@ -16,20 +16,22 @@ const struct token_ops TOKEN_REGISTERY[256] = {
   ['>'] = { .tokenize_char = tokenize_char, .tokenize_range = tokenize_span, .scope_inc_num_tokens = scope_inc_num_tokens },
 };
 
-struct lex_token_t *tokenize_span(int cur, int strt, FILE *file)
+struct lex_token_t *tokenize_span(struct char_stream *stream)
 {
   char buf[32];
 
-  fseek(file, strt, SEEK_SET);
-  fread(buf, sizeof(char), cur-strt, file);
-  fseek(file, cur+1, SEEK_SET);
+  int read = stream->api->read_prev(stream->self, buf, stream->api->get_window_size(stream->self));
+  if (read == 0)
+  {
+    return NULL;
+  }
     
-  buf[cur-strt] = '\0';
+  buf[read] = '\0';
 
   struct lex_token_t *token_ptr = create_lex_token(
     get_token_type_from_text(buf),
     buf,
-    cur-strt,
+    stream->api->get_window_size(stream->self),
     NULL,
     0
   );
@@ -37,14 +39,13 @@ struct lex_token_t *tokenize_span(int cur, int strt, FILE *file)
   return token_ptr;
 }
 
-struct lex_token_t *tokenize_char(int cur, FILE *file)
+struct lex_token_t *tokenize_char(struct char_stream *stream)
 {
   char buf[32];
 
-  fseek(file, cur, SEEK_SET);
-  fread(buf, sizeof(char), 1, file);
-  fseek(file, cur+1, SEEK_SET);
-
+  int read = stream->api->read_cur(stream->self, buf);
+  
+  if (read == 0) { return NULL; }
   buf[1] = '\0';
 
   struct lex_token_t *token_ptr = create_lex_token(
@@ -59,7 +60,7 @@ struct lex_token_t *tokenize_char(int cur, FILE *file)
 }
 
 
-void tokenize(struct lex_token_list_t *lexer_output, char c, int cur, int strt, FILE *file)
+void tokenize(struct lex_token_list_t *lexer_output, char c, struct char_stream *stream)
 {
   struct token_ops ops = TOKEN_REGISTERY[c];
   struct lex_token_t *token_ptr = NULL;
@@ -79,21 +80,26 @@ void tokenize(struct lex_token_list_t *lexer_output, char c, int cur, int strt, 
 
   if (ops.tokenize_range) 
   {
-    if (cur-strt > 0)
+    token_ptr = ops.tokenize_range(stream); 
+    if (token_ptr != NULL) 
     {
-      token_ptr = ops.tokenize_range(cur, strt, file); 
       add_token_to_list(lexer_output, token_ptr);
       if (ops.scope_inc_num_tokens) { ops.scope_inc_num_tokens(&scope_stack); }
-      else { printf("dint inc num line\n"); }
     }
   }
 
   if (ops.tokenize_char)
   {
-    token_ptr = ops.tokenize_char(cur, file);
-    add_token_to_list(lexer_output, token_ptr);
-    if (ops.scope_inc_num_tokens) { ops.scope_inc_num_tokens(&scope_stack); }
-    else { printf("dint inc num line\n"); }
+    token_ptr = ops.tokenize_char(stream);
+    if (token_ptr != NULL)
+    {
+      add_token_to_list(lexer_output, token_ptr);
+      if (ops.scope_inc_num_tokens) { ops.scope_inc_num_tokens(&scope_stack); }
+    }
+    else
+    {
+      printf("missed char: %c\n", c);
+    }
   }
 
   if (ops.scope_inc_num_lines) { ops.scope_inc_num_lines(&scope_stack); }
