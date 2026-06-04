@@ -42,7 +42,7 @@ int main()
     return -1;
   }
 
-  // ir_ast(root);
+  ir_ast(body);
   // free(root);
   // free(lexer_output.tokens); 
 }

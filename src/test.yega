@@ -1,16 +1,1 @@
-int x = 1 + 2;
-
-if (x == 1)
-{
-  int f = 4;
-  int d = 11;
-  if (dh< 1)
-  {
-    int z = 111;
-    if (z > 100)
-    {
-      int f = 1;
-      int gall = 141;
-    }
-  }
-}
+int x = 1 + 2 + 3 + 4 + 5;

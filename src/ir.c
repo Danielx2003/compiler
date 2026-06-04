@@ -79,14 +79,20 @@ struct ir_ret ir_expr_tail(struct ast_expr_tail *tail)
     .temp = 0
   };
 
-  if (tail == NULL || tail->type == AST_EXPR_PRIME_NULL)
+  if (tail == NULL
+    //|| tail->type == AST_EXPR_PRIME_NULL
+  )
   {
     return ret;
   }
 
   struct ir_ret tail_ret = ir_expr_tail(tail->next);
 
-  if (tail->type == AST_EXPR_PRIME_TERM_ONLY)
+  
+  if (
+    tail->next == NULL
+    // tail->type == AST_EXPR_PRIME_TERM_ONLY
+  )
   {
     if (tail->term.type == AST_TERM_ID)
     {
@@ -208,9 +214,12 @@ struct ir_ret ir_expr(struct ast_expr *expr)
   item.type = IR_ITEM_ASSIGN;
 
   
-  if (expr->tail.type != AST_EXPR_PRIME_NULL)
+  if (
+    expr->tail
+    // expr->tail.type != AST_EXPR_PRIME_NULL
+  )
   {
-    struct ir_ret tail_ret = ir_expr_tail(&expr->tail);
+    struct ir_ret tail_ret = ir_expr_tail(expr->tail);
 
     item.assign.type = IR_ASSIGN_VALUE;
     item.assign.value.type = IR_ASSIGN_VALUE_DOUBLE;

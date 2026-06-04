@@ -43,7 +43,7 @@ struct ast_expr_tail {
 
 struct ast_expr {
   struct ast_term term;
-  struct ast_expr_tail tail;
+  struct ast_expr_tail *tail;
 };
 
 /*

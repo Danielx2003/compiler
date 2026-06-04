@@ -69,7 +69,29 @@ bool parse_term(
   if (cur_token.type == LEX_TOKEN_EOF) { return false; }
   return true;
 }
+/*
+bool parse_expr_tail(
+    struct lex_token_list_t *lexer_output,
+    struct ast_expr_tail *tail
+)
+{
+  if (cur_token.type == LEX_TOKEN_ADD) // change to be any arithmetic later
+  {
+    tail->next = (struct ast_expr_tail *)malloc(sizeof(struct ast_expr_tail));
 
+    consume_token(lexer_output);
+    if (!parse_term(lexer_output, &tail->term)
+        || !parse_expr_tail(lexer_output, tail->next))
+    {
+      free(tail->next);
+      tail->next = NULL;
+      return false;
+    }
+  }
+
+  return true;
+}
+*/
 bool parse_expr_tail(
     struct lex_token_list_t *lexer_output,
     struct ast_expr_tail *tail,
@@ -78,7 +100,6 @@ bool parse_expr_tail(
 {
   if (cur_token.type == LEX_TOKEN_ADD) // change to be any arithmetic later
   {
-    tail->type = AST_EXPR_PRIME_TERM_EXPR;
     tail->next = (struct ast_expr_tail *)malloc(sizeof(struct ast_expr_tail));
 
     consume_token(lexer_output);
@@ -90,13 +111,11 @@ bool parse_expr_tail(
       return false;
     }
   }
-  else
+  else 
   {
-    tail->type = AST_EXPR_PRIME_NULL;
-    if (tail_parent != NULL)
-    {
-      tail_parent->type = AST_EXPR_PRIME_TERM_ONLY;
-    }
+    free(tail_parent->next);
+    tail_parent->next = NULL;
+    tail = NULL;
   }
 
   return true;
@@ -107,8 +126,10 @@ bool parse_expr(
     struct ast_expr *expr
 )
 {
+  expr->tail = (struct ast_expr_tail *)malloc(sizeof(struct ast_expr_tail));
+
   if (!parse_term(lexer_output, &expr->term)
-      || !parse_expr_tail(lexer_output, &expr->tail, NULL))
+      || !parse_expr_tail(lexer_output, expr->tail, NULL))
   {
     return false;
   }
@@ -241,7 +262,6 @@ bool parse_condition_body(
     {
       parse_line(lexer_output, &body->lines[i]);
     }
-    // parse_assignment(lexer_output, &body->assignment);
   }
 
   if (cur_token.type == LEX_TOKEN_CLOSE_SCOPE)
@@ -366,7 +386,7 @@ void free_ast_expr_tail(struct ast_expr_tail *tail)
 
 void free_ast_expr(struct ast_expr *expr)
 {
-  free_ast_expr_tail(&expr->tail);
+  free_ast_expr_tail(expr->tail);
 }
 
 void free_ast_assignment(struct ast_assignment *assign)

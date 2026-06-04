@@ -24,24 +24,29 @@ void print_term(struct ast_term *term)
 
 void print_expr_prime(struct ast_expr_tail *tail)
 {
-  if (tail->next == NULL || tail->type == AST_EXPR_PRIME_NULL)
+  if (tail->next == NULL 
+    // || tail->type == AST_EXPR_PRIME_NULL
+  )
   {
     return;
   }
 
+  /*
   if (tail->type == AST_EXPR_PRIME_TERM_ONLY)
   {
     print_term(&tail->term);
     return;
   }
+  */
 
+  print_term(&tail->term);
   print_expr_prime(tail->next);
 }
 
 void print_expr(struct ast_expr *expr)
 {
   print_term(&expr->term);
-  print_expr_prime(&expr->tail);
+  print_expr_prime(expr->tail);
 }
 
 
@@ -212,24 +217,28 @@ void scope_term(struct symbol_table_stack_t *stack, struct ast_term *term)
 
 void scope_expr_prime(struct symbol_table_stack_t *stack, struct ast_expr_tail *tail)
 {
-  if (tail->next == NULL || tail->type == AST_EXPR_PRIME_NULL)
+  if (tail->next == NULL 
+    //|| tail->type == AST_EXPR_PRIME_NULL
+  )
   {
     return;
   }
 
+  /*
   if (tail->type == AST_EXPR_PRIME_TERM_ONLY)
   {
     scope_term(stack, &tail->term);
     return;
   }
-
+  */
+  scope_term(stack, &tail->term);
   scope_expr_prime(stack, tail->next);
 }
 
 void scope_expr(struct symbol_table_stack_t *stack, struct ast_expr *expr)
 {
   scope_term(stack, &expr->term);
-  scope_expr_prime(stack, &expr->tail);
+  scope_expr_prime(stack, expr->tail);
 }
 
 void scope_assignment(struct symbol_table_stack_t *stack, struct ast_assignment *assign)
