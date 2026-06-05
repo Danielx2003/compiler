@@ -11,23 +11,24 @@ bool error = false;
 
 bool parse_terminator(struct lex_token_stream *tokens)
 {
-  if (cur_token.type == LEX_TOKEN_SEMI_COLON)
+  if (parser_match(tokens, LEX_TOKEN_SEMI_COLON))
   {
-    consume_token(tokens);
+    parser_consume(tokens);
     return true;
   }
 
   printf("expecting terminator \n");
   error = true;
   while (
-      cur_token.type != LEX_TOKEN_ID
-      && cur_token.type != LEX_TOKEN_CONSTANT
-      && cur_token.type != LEX_TOKEN_EOF)
+      !parser_match(tokens, LEX_TOKEN_ID)
+      && !parser_match(tokens, LEX_TOKEN_CONSTANT)
+      && !parser_match(tokens, LEX_TOKEN_EOF)
+  )
   {
-    consume_token(tokens);
+    parser_consume(tokens);
   }
 
-  if (cur_token.type == LEX_TOKEN_EOF) { return false; }
+  if (parser_match(tokens, LEX_TOKEN_EOF)) { return false; }
   return true;
 }
 
@@ -36,37 +37,37 @@ bool parse_term(
     struct ast_term *term
 )
 {
-  if (cur_token.type == LEX_TOKEN_ID)
+  if (parser_match(tokens, LEX_TOKEN_ID))
   {
     term->type = AST_TERM_ID;
-    strcpy(term->id.text, cur_token.text);
-    consume_token(tokens);
+    strcpy(term->id.text, parser_peek(tokens).text);
+    parser_consume(tokens);
     return true;
   }
-  else if (cur_token.type == LEX_TOKEN_CONSTANT)
+  else if (parser_match(tokens, LEX_TOKEN_CONSTANT))
   {
     term->type = AST_TERM_CONSTANT;
-    term->constant.value = atoi(cur_token.text);
-    consume_token(tokens);
+    term->constant.value = atoi(parser_peek(tokens).text);
+    parser_consume(tokens);
     return true;
   }
   
   printf("Error Parsing Term\n");
   error = true;
   while (
-    cur_token.type != LEX_TOKEN_ADD
-    && cur_token.type != LEX_TOKEN_EQUIV
-    && cur_token.type != LEX_TOKEN_GREATER_THAN
-    && cur_token.type != LEX_TOKEN_LESS_THAN
-    && cur_token.type != LEX_TOKEN_CLOSE_SCOPE
-    && cur_token.type != LEX_TOKEN_CLOSE_BRACKET
-    && cur_token.type != LEX_TOKEN_SEMI_COLON
-    && cur_token.type != LEX_TOKEN_EOF)
+    !parser_match(tokens, LEX_TOKEN_ADD)
+    && !parser_match(tokens, LEX_TOKEN_EQUIV)
+    && !parser_match(tokens, LEX_TOKEN_GREATER_THAN)
+    && !parser_match(tokens, LEX_TOKEN_LESS_THAN)
+    && !parser_match(tokens, LEX_TOKEN_CLOSE_SCOPE)
+    && !parser_match(tokens, LEX_TOKEN_CLOSE_BRACKET)
+    && !parser_match(tokens, LEX_TOKEN_SEMI_COLON)
+    && !parser_match(tokens, LEX_TOKEN_EOF))
   {
-    consume_token(tokens);
+    parser_consume(tokens);
   }
 
-  if (cur_token.type == LEX_TOKEN_EOF) { return false; }
+  if (parser_match(tokens, LEX_TOKEN_EOF)) { return false; }
   return true;
 }
 /*
@@ -79,7 +80,7 @@ bool parse_expr_tail(
   {
     tail->next = (struct ast_expr_tail *)malloc(sizeof(struct ast_expr_tail));
 
-    consume_token(tokens);
+    parser_consume(tokens);
     if (!parse_term(tokens, &tail->term)
         || !parse_expr_tail(tokens, tail->next))
     {
@@ -94,31 +95,27 @@ bool parse_expr_tail(
 */
 bool parse_expr_tail(
     struct lex_token_stream *tokens,
-    struct ast_expr_tail *tail,
-    struct ast_expr_tail *tail_parent
+    struct ast_expr_tail **tail
 )
 {
-  if (cur_token.type == LEX_TOKEN_ADD) // change to be any arithmetic later
-  {
-    tail->next = (struct ast_expr_tail *)malloc(sizeof(struct ast_expr_tail));
+  if (parser_match(tokens, LEX_TOKEN_ADD))
+  { 
+    struct ast_expr_tail *new_tail = (struct ast_expr_tail *)malloc(sizeof(struct ast_expr_tail));
+    // tail->next = (struct ast_expr_tail *)malloc(sizeof(struct ast_expr_tail));
 
-    consume_token(tokens);
-    if (!parse_term(tokens, &tail->term)
-        || !parse_expr_tail(tokens, tail->next, tail))
+    parser_consume(tokens);
+    if (!parse_term(tokens, &new_tail->term)
+        || !parse_expr_tail(tokens, &new_tail->next))
     {
-      free(tail->next);
-      tail->next = NULL;
+      free(new_tail);
       return false;
     }
+
+    *tail = new_tail;
   }
-  else 
+  else
   {
-    if (tail_parent)
-    {
-      free(tail_parent->next);
-      tail_parent->next = NULL;
-    }
-    tail = NULL;
+    *tail = NULL;
   }
 
   return true;
@@ -129,10 +126,11 @@ bool parse_expr(
     struct ast_expr *expr
 )
 {
-  expr->tail = (struct ast_expr_tail *)malloc(sizeof(struct ast_expr_tail));
+  expr->tail = NULL;
+  // expr->tail = (struct ast_expr_tail *)malloc(sizeof(struct ast_expr_tail));
 
   if (!parse_term(tokens, &expr->term)
-      || !parse_expr_tail(tokens, expr->tail, NULL))
+      || !parse_expr_tail(tokens, &expr->tail))
   {
     return false;
   }
@@ -143,9 +141,9 @@ bool parse_expr(
 
 bool parse_equals(struct lex_token_stream *tokens)
 {
-  if (cur_token.type == LEX_TOKEN_EQUAL)
+  if (parser_match(tokens, LEX_TOKEN_EQUAL))
   {
-    consume_token(tokens);
+    parser_consume(tokens);
     return true;
   }
   else
@@ -160,29 +158,30 @@ bool parse_assignment(
     struct lex_token_stream *tokens,
     struct ast_assignment *assignment)
 {
-  if (cur_token.type == LEX_TOKEN_INT)
+  if (parser_match(tokens, LEX_TOKEN_INT))
   {
     assignment->type = AST_TYPE_INT;
-    consume_token(tokens);
+    parser_consume(tokens);
     if (!parse_term(tokens, &assignment->term)
         || !parse_equals(tokens)
         || !parse_expr(tokens, &assignment->expr))
     {
       return false;
     }
+
   }
   else
   {
-    printf("Error parsing assignment: expected int, recieved: %d, at index %d\n", cur_token.type, tokens->cur_idx);
+    printf("Error parsing assignment: expected int, recieved: %d, at index %d\n", parser_peek(tokens).type, tokens->cur_idx);
     error = true;
     while (
-      cur_token.type != LEX_TOKEN_SEMI_COLON
-      && cur_token.type != LEX_TOKEN_CLOSE_SCOPE
-      && cur_token.type != LEX_TOKEN_EOF)
+      !parser_match(tokens, LEX_TOKEN_SEMI_COLON)
+      && !parser_match(tokens, LEX_TOKEN_CLOSE_SCOPE)
+      && !parser_match(tokens, LEX_TOKEN_EOF))
     {
-      consume_token(tokens);
+      parser_consume(tokens);
     }
-    if (cur_token.type == LEX_TOKEN_EOF) { return false; }
+    if (parser_match(tokens, LEX_TOKEN_EOF)) { return false; }
   }
 
   parse_terminator(tokens);
@@ -195,6 +194,7 @@ bool parse_op(
    enum ast_op_type *op
 )
 {
+  cur_token = parser_peek(tokens);
   switch (cur_token.type)
   {
     case LEX_TOKEN_EQUIV:
@@ -210,7 +210,7 @@ bool parse_op(
       printf("Invalid operator\n");
       return false;
   }
-  consume_token(tokens);
+  parser_consume(tokens);
   return true;
 }
 
@@ -226,25 +226,24 @@ bool parse_condition(
     return false;
   }
 
-  if (cur_token.type == LEX_TOKEN_CLOSE_BRACKET)
+  if (parser_match(tokens, LEX_TOKEN_CLOSE_BRACKET))
   {
-    consume_token(tokens);
+    parser_consume(tokens);
     return true;
   }
 
   while (
-    cur_token.type != LEX_TOKEN_CLOSE_BRACKET
-    && cur_token.type != LEX_TOKEN_EOF
+    !parser_match(tokens, LEX_TOKEN_CLOSE_BRACKET)
+    && !parser_match(tokens, LEX_TOKEN_EOF)
   )
   {
-    consume_token(tokens);
+    parser_consume(tokens);
   }
 
-  if (cur_token.type == LEX_TOKEN_EOF)
+  if (parser_match(tokens, LEX_TOKEN_EOF))
   {
     return false;
   }
-
 }
 
 bool parse_condition_body(
@@ -252,37 +251,37 @@ bool parse_condition_body(
   struct ast_body *body
 )
 {
-  body->lines = (struct ast_line*)calloc(cur_token.ctx.num_lines, sizeof(struct ast_line));
+  body->lines = (struct ast_line*)calloc(parser_peek(tokens).ctx.num_lines, sizeof(struct ast_line));
   if (body->lines != NULL)
   {
-    body->num_lines = cur_token.ctx.num_lines;
+    body->num_lines = parser_peek(tokens).ctx.num_lines;
   }
 
-  if (cur_token.type == LEX_TOKEN_OPEN_SCOPE)
+  if (parser_match(tokens, LEX_TOKEN_OPEN_SCOPE))
   {
-    consume_token(tokens);
+    parser_consume(tokens);
     for (int i = 0; i < body->num_lines; i++)
     {
       parse_line(tokens, &body->lines[i]);
     }
   }
 
-  if (cur_token.type == LEX_TOKEN_CLOSE_SCOPE)
+  if (parser_match(tokens, LEX_TOKEN_CLOSE_SCOPE))
   {
-    consume_token(tokens);
+    parser_consume(tokens);
   }
   else
   { 
     while (
-      cur_token.type != LEX_TOKEN_SEMI_COLON
-      && cur_token.type != LEX_TOKEN_CLOSE_SCOPE
-      && cur_token.type != LEX_TOKEN_EOF
+      !parser_match(tokens, LEX_TOKEN_SEMI_COLON)
+      && !parser_match(tokens, LEX_TOKEN_CLOSE_SCOPE)
+      && !parser_match(tokens, LEX_TOKEN_EOF)
     )
     {
-      consume_token(tokens);
+      parser_consume(tokens);
     }
 
-    if (cur_token.type == LEX_TOKEN_EOF)
+    if (parser_match(tokens, LEX_TOKEN_EOF))
     {
       return false;
     }
@@ -294,24 +293,24 @@ bool parse_if(
   struct ast_conditional *cond
 )
 {
-  if (cur_token.type == LEX_TOKEN_OPEN_BRACKET) 
+  if (parser_match(tokens, LEX_TOKEN_OPEN_BRACKET))
   {
-    consume_token(tokens);
+    parser_consume(tokens);
     parse_condition(tokens, &cond->condition);
     parse_condition_body(tokens, &cond->body);
   }
   else
   {
     while (
-      cur_token.type != LEX_TOKEN_SEMI_COLON
-      && cur_token.type != LEX_TOKEN_CLOSE_BRACKET
-      && cur_token.type != LEX_TOKEN_EOF
+      !parser_match(tokens, LEX_TOKEN_SEMI_COLON)
+      && !parser_match(tokens, LEX_TOKEN_CLOSE_BRACKET)
+      && !parser_match(tokens, LEX_TOKEN_EOF)
     )
     {
-      consume_token(tokens);
+      parser_consume(tokens);
     }
 
-    if (cur_token.type == LEX_TOKEN_EOF)
+    if (parser_match(tokens, LEX_TOKEN_EOF))
     {
       return false;
     }
@@ -325,10 +324,10 @@ void parse_line(
     struct ast_line *line
 )
 {
-  if (cur_token.type == LEX_TOKEN_IF)
+  if (parser_match(tokens, LEX_TOKEN_IF))
   {
+    parser_consume(tokens);
     line->type = AST_LINE_CONDITIONAL;
-    consume_token(tokens);
     parse_if(tokens, &line->conditional);
   }
   else
@@ -349,33 +348,36 @@ struct ast_body* parse_lexer_tokens(struct lex_token_stream *tokens, int num_lin
   root->lines = (struct ast_line *)malloc(sizeof(struct ast_line) * num_lines);
 
   do {
-    peek_token(tokens);
-
-    if (cur_token.type == LEX_TOKEN_EOF) { continue; }
+    if (parser_match(tokens, LEX_TOKEN_EOF)) { continue; }
 
     parse_line(tokens, &root->lines[cur_line]);
     cur_line++;
-  } while (cur_token.type != LEX_TOKEN_EOF);
+  } while (!parser_match(tokens, LEX_TOKEN_EOF));
 
   if (error) { printf("Syntax Error\n"); }
   return root;
 }
 
-void peek_token(
-    struct lex_token_stream *tokens
-)
+struct lex_token_t parser_peek(struct lex_token_stream *tokens)
 {
-  memcpy(&cur_token, &tokens->data[tokens->cur_idx], sizeof(struct lex_token_t));
+  // if (tokens->cur_idx >= tokens->capacity) { return NULL; }
+  return tokens->data[tokens->cur_idx];
+  // memcpy(&cur_token, &tokens->data[tokens->cur_idx], sizeof(struct lex_token_t));
 }
 
-void consume_token(
-    struct lex_token_stream *tokens
-)
+void parser_consume(struct lex_token_stream *tokens)
 {
-  if (tokens->cur_idx > tokens->capacity) { return; }
+  if (tokens->cur_idx >= tokens->capacity) { return; }
 
   tokens->cur_idx++;
-  peek_token(tokens);
+  // parser_peek(tokens);
 }
 
-
+bool parser_match(struct lex_token_stream *tokens, enum lex_token_type expected_type)
+{
+  if (parser_peek(tokens).type == expected_type)
+  {
+    return true;
+  }
+  return false;
+}

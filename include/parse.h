@@ -3,6 +3,8 @@
 #include "lexer.h" // Migrate tokens to own header file
 #include "ast_type.h"
 
+#include <stdbool.h>
+
 struct ast_operator {
   enum ast_op_type type;
 };
@@ -73,9 +75,9 @@ struct ast_body* parse_lexer_tokens(
   int nun_lines
 );
 
-void peek_token(struct lex_token_stream *lexer_output);
-
-void consume_token(struct lex_token_stream *lexer_output);
+struct lex_token_t parser_peek(struct lex_token_stream *lexer_output);
+void parser_consume(struct lex_token_stream *tokens);
+bool parser_match(struct lex_token_stream *tokens, enum lex_token_type expected_type);
 
 void parse_line(
   struct lex_token_stream *lexer_output,

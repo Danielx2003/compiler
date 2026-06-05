@@ -38,7 +38,7 @@ int main()
  
   for (int i = 0; i < tokens.cur_idx ; i++)
   {
-    printf("Token Type: %d --- Text: %*s\n", tokens.data[i].type, tokens.data[i].text_len, tokens.data[i].text);
+    printf("Token Type: %d --- Text: %s\n", tokens.data[i].type, tokens.data[i].text);
   }
   printf("\n");
  
@@ -51,7 +51,7 @@ int main()
     return -1;
   }
 
-  // ir_ast(body);
+  ir_ast(body);
   // free(root);
   // free(lexer_output.tokens); 
 }

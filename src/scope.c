@@ -9,93 +9,6 @@
 int indent = 0;
 bool scope_error = false;
 
-void print_body(struct ast_body *body)
-{
-  for (int i = 0; i < body->num_lines; i++)
-  {
-    print_line(&body->lines[i]);
-  }
-}
-
-void print_term(struct ast_term *term)
-{
-  printf("%s ", term->id.text);
-}
-
-void print_expr_prime(struct ast_expr_tail *tail)
-{
-  if (tail->next == NULL 
-    // || tail->type == AST_EXPR_PRIME_NULL
-  )
-  {
-    return;
-  }
-
-  /*
-  if (tail->type == AST_EXPR_PRIME_TERM_ONLY)
-  {
-    print_term(&tail->term);
-    return;
-  }
-  */
-
-  print_term(&tail->term);
-  print_expr_prime(tail->next);
-}
-
-void print_expr(struct ast_expr *expr)
-{
-  print_term(&expr->term);
-  print_expr_prime(expr->tail);
-}
-
-
-void print_assignment(struct ast_assignment *assign)
-{
-  for (int i = 0; i < indent; i++)
-  {
-    printf("-");
-  }
-  printf(" int ");
-  print_term(&assign->term);
-  printf(" = ");
-  print_expr(&assign->expr);
-  printf("\n");
-}
-
-void print_conditional(struct ast_conditional *conditional)
-{
-  indent += 4;
-  print_body(&conditional->body);
-  indent -= 4;
-}
-
-void print_line(struct ast_line *line)
-{
-  if (line->type == AST_LINE_ASSIGNMENT)
-  {
-    print_assignment(&line->assignment);
-  }
-  else if (line->type == AST_LINE_CONDITIONAL)
-  {
-    for (int i = 0; i < indent; i++)
-    {
-      printf("-");
-    }
-    printf("If Statement\n");
-    print_conditional(&line->conditional);
-    printf("\n");
-  }
-}
-
-void print_root(struct ast_body *root)
-{
-  for (int i = 0; i < root->num_lines; i++)
-  {
-    print_line(&root->lines[i]);
-  }
-}
-
 bool is_symbol_table_full(struct symbol_table_t *table)
 {
   if (sizeof(table->symbols) == table->num_symbols)
@@ -217,20 +130,11 @@ void scope_term(struct symbol_table_stack_t *stack, struct ast_term *term)
 
 void scope_expr_prime(struct symbol_table_stack_t *stack, struct ast_expr_tail *tail)
 {
-  if (tail->next == NULL 
-    //|| tail->type == AST_EXPR_PRIME_NULL
-  )
+  if (tail == NULL || tail->next == NULL)
   {
     return;
   }
 
-  /*
-  if (tail->type == AST_EXPR_PRIME_TERM_ONLY)
-  {
-    scope_term(stack, &tail->term);
-    return;
-  }
-  */
   scope_term(stack, &tail->term);
   scope_expr_prime(stack, tail->next);
 }
