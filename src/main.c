@@ -1,9 +1,10 @@
+#include "codegen.h"
+#include "file_stream.h"
+#include "ir.h"
+#include "ir_helper.h"
 #include "lexer.h"
 #include "parse.h"
 #include "scope.h"
-#include "ir.h"
-#include "file_stream.h"
-#include "parse.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,7 +52,17 @@ int main()
     return -1;
   }
 
-  ir_ast(body);
+  struct ir_stream ir_stream = {0};
+  ir_ast(body, &ir_stream);
+
+  for (int i = 0; i < ir_stream.total; i++)
+  {
+    print_ir_item(&ir_stream.items[i]);
+  }
+  printf("\n");
+
+  generate_yasm(&ir_stream);
+
   // free(root);
   // free(lexer_output.tokens); 
 }

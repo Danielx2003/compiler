@@ -2,14 +2,6 @@
 
 #include "parse.h"
 
-void ir_ast(struct ast_body *root);
-
-void ir_condition_body(struct ast_body *body);
-struct ir_ret ir_condition(struct ast_condition *cond);
-struct ir_ret ir_assignment(struct ast_assignment *assign);
-struct ir_ret ir_expr(struct ast_expr *expr);
-struct ir_ret ir_expr_prime(struct ast_expr_tail *tail);
-void ir_line(struct ast_line *line);
 
 enum ir_ret_type {
   IR_RET_TYPE_TEMP,
@@ -17,13 +9,6 @@ enum ir_ret_type {
   IR_RET_TYPE_CONSTANT,
   IR_RET_TYPE_NULL
 };
-
-/*
-struct ir_ret_id {
-  char text[32];
-  size_t text_len;
-};
-*/
 
 struct ir_ret {
   enum ir_ret_type type;
@@ -33,10 +18,6 @@ struct ir_ret {
     char text[32];
   };
 };
-
-
-/* IR Structs */
-
 
 enum ir_cond_op {
   IR_COND_OPERATOR_TYPE_EQUIV,
@@ -53,54 +34,13 @@ enum ir_op {
   IR_ASSIGN_OP_GREATER_THAN
 };
 
-/*
-enum ir_condition_type {
-  IR_CONDITION_TYPE_TEMP_TEMP,
-  IR_CONDITION_TYPE_TEMP_TERM, 
-  IR_CONDITION_TYPE_TERM_TEMP,
-  IR_CONDITION_TYPE_TERM_TERM
-};
-*/
-
-/*
-struct ir_condition {
-  enum ir_condition_type type;
-  enum ir_cond_op op;
-  int lhs;
-  union {
-    struct {
-      int temp_l;
-      int temp_r;
-    } temp_temp;
-    struct {
-      int temp;
-      char term[32];
-    } temp_term;
-    struct {
-      char term[32];
-      int temp;
-    } term_temp;
-    struct {
-      char term_l[32];
-      char term_r[32];
-    } term_term;
-  };
-};
-*/
-
 enum ir_assign_type {
   IR_ASSIGN_VALUE,
   IR_ASSIGN_CONDITION
 };
 
-/*
-enum ir_assign_value_type {
-  IR_ASSIGN_VALUE_SINGLE,
-  IR_ASSIGN_VALUE_DOUBLE
-};
-*/
-
 enum ir_term_type {
+  IR_TERM_NULL,
   IR_TERM_TEMP,
   IR_TERM_ID,
   IR_TERM_CONSTANT
@@ -115,35 +55,12 @@ struct ir_term {
   };
 };
 
-/*
-struct ir_assign_value {
-  enum ir_assign_value_type type;
-  enum ir_assign_op assign_op; // Set to NULL when IR_ASSIGN_VALUE_SINGLE
-  struct ir_term lhs;
-  struct ir_term rhs_l;
-  struct ir_term rhs_r; // Set to NULL when IR_ASSIGN_VALUE_SINGLE
-};
-*/
-
-// x = 1 + 2
-
 struct ir_assign {
-  enum ir_assign_type type;
   struct ir_term lhs;
   struct ir_term rhs_1;
   struct ir_term rhs_2;
   enum ir_op op;
 };
-
-/*
-struct ir_assign {
-  enum ir_assign_type type;
-  union {
-    struct ir_assign_value value;
-    struct ir_condition condition;
-  };
-};
-*/
 
 struct ir_conditional {
   int temp;
@@ -169,3 +86,19 @@ struct ir_item {
   };
 };
 
+struct ir_stream {
+  struct ir_item *items;
+  int cur_idx;
+  int total;
+};
+
+void ir_ast(struct ast_body *root, struct ir_stream *stream);
+void ir_condition_body(struct ast_body *body);
+struct ir_ret ir_condition(struct ast_condition *cond);
+struct ir_ret ir_assignment(struct ast_assignment *assign);
+struct ir_ret ir_expr(struct ast_expr *expr);
+struct ir_ret ir_expr_prime(struct ast_expr_tail *tail);
+void ir_line(struct ast_line *line);
+
+void add_to_ir_list(struct ir_item *item);
+enum ir_op ast_op_to_ir(enum ast_op_type ast_op);
