@@ -165,6 +165,20 @@ struct ir_ret ir_expr(struct ast_expr *expr)
   return ret;
 }
 
+struct ir_ret ir_declaration(struct ast_declaration *decl)
+{
+  struct ir_ret expr_ret = ir_expr(&decl->expr);
+
+  struct ir_item item = {0};
+  item.type = IR_ITEM_ASSIGN;
+  
+  ir_set_term_from_ast(&item.assign.lhs, &decl->term);
+  ir_set_term_from_ret(&item.assign.rhs_1, &expr_ret);
+  add_to_ir_list(&item);
+
+  return (struct ir_ret) {0};
+}
+
 struct ir_ret ir_assignment(struct ast_assignment *assign)
 {
   struct ir_ret expr_ret = ir_expr(&assign->expr);
@@ -260,6 +274,9 @@ void ir_line(struct ast_line *line)
       break;
     case AST_LINE_ASSIGNMENT:
       ir_assignment(&line->assignment);
+      break;
+    case AST_LINE_DECLARATION:
+      ir_declaration(&line->declaration);
       break;
   }
 }

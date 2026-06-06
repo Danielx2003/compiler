@@ -7,8 +7,10 @@ enum ast_conditional_type {
 };
 
 enum ast_line_type {
+  AST_LINE_NULL,
   AST_LINE_ASSIGNMENT,
-  AST_LINE_CONDITIONAL
+  AST_LINE_CONDITIONAL,
+  AST_LINE_DECLARATION
 };
 
 enum ast_type {

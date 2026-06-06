@@ -38,8 +38,14 @@ struct ast_expr {
   struct ast_expr_tail *tail;
 };
 
-struct ast_assignment {
+struct ast_declaration {
   enum ast_type type;
+  struct ast_term term;
+  struct ast_expr expr;
+};
+
+struct ast_assignment {
+  // enum ast_type type;
   struct ast_term term;
   struct ast_expr expr;
 };
@@ -64,6 +70,7 @@ struct ast_conditional {
 struct ast_line {
   enum ast_line_type type;
   union {
+    struct ast_declaration declaration;
     struct ast_assignment assignment;
     struct ast_conditional conditional;
   };
