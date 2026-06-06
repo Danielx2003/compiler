@@ -10,7 +10,8 @@ enum ast_line_type {
   AST_LINE_NULL,
   AST_LINE_ASSIGNMENT,
   AST_LINE_CONDITIONAL,
-  AST_LINE_DECLARATION
+  AST_LINE_DECLARATION,
+  AST_LINE_FUNCTION_DEF
 };
 
 enum ast_type {
@@ -21,12 +22,6 @@ enum ast_type {
 enum ast_term_type {
   AST_TERM_ID,
   AST_TERM_CONSTANT
-};
-
-enum ast_expr_prime_type {
-  AST_EXPR_PRIME_NULL,
-  AST_EXPR_PRIME_TERM_EXPR,
-  AST_EXPR_PRIME_TERM_ONLY
 };
 
 enum ast_op_type {

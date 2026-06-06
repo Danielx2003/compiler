@@ -14,6 +14,7 @@ const struct token_ops TOKEN_REGISTERY[256] = {
   [')'] = { .tokenize_char = tokenize_char, .tokenize_range = tokenize_span, .scope_inc_num_tokens = scope_inc_num_tokens },
   ['<'] = { .tokenize_char = tokenize_char, .tokenize_range = tokenize_span, .scope_inc_num_tokens = scope_inc_num_tokens },
   ['>'] = { .tokenize_char = tokenize_char, .tokenize_range = tokenize_span, .scope_inc_num_tokens = scope_inc_num_tokens },
+  [','] = { .tokenize_char = tokenize_char, .tokenize_range = tokenize_span, .scope_inc_num_tokens = scope_inc_num_tokens },
 };
 
 struct lex_token_t *tokenize_span(struct char_stream *stream)

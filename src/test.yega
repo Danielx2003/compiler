@@ -1,6 +1,4 @@
-int b = 1 + 2;
-while (b == 3)
+func int add_two(int a, int b)
 {
-  b = b + 1;
-  int c = 50;
+  int c = a + b;
 }

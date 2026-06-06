@@ -27,7 +27,6 @@ struct ast_term {
 };
 
 struct ast_expr_tail {
-  enum ast_expr_prime_type type;
   enum ast_op_type op;
   struct ast_term term;
   struct ast_expr_tail *next;
@@ -67,12 +66,25 @@ struct ast_conditional {
   struct ast_body body;
 };
 
+struct ast_param {
+  char text[32];
+  struct ast_param *next;
+};
+
+struct ast_function_def {
+  enum ast_type ret_type;
+  struct ast_term name;
+  struct ast_param *params;
+  struct ast_body body;
+};
+
 struct ast_line {
   enum ast_line_type type;
   union {
     struct ast_declaration declaration;
     struct ast_assignment assignment;
     struct ast_conditional conditional;
+    struct ast_function_def function_def;
   };
 };
 
