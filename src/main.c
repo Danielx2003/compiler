@@ -62,7 +62,7 @@ int main()
   }
   printf("\n");
 
-  // generate_yasm(&ir_stream);
+  generate_yasm(&ir_stream);
   
   // free(root);
   // free(lexer_output.tokens); 
