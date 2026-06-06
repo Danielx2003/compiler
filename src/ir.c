@@ -88,6 +88,15 @@ void add_to_ir_list(struct ir_item *item)
   ir_idx++;
 }
 
+void ir_create_function_name(struct ast_id *id) // change 
+{
+  struct ir_item item = {
+    .type = IR_ITEM_FUNCTION_DEF
+  };
+  strcpy(item.function_def.name, id->text);
+  add_to_ir_list(&item);
+}
+
 void ir_create_if(int temp, int label)
 {
   struct ir_item item = {0};
@@ -265,6 +274,41 @@ void ir_conditional(struct ast_conditional *cond)
   // else - not in the language yet
 }
 
+void ir_function_def(struct ast_function_def *func)
+{
+  ir_create_function_name(&func->name);
+
+  int count = 0;
+  for (struct ast_param *ptr = func->params; ptr != NULL; ptr=ptr->next)
+  {
+    count++;
+  }
+
+  /*
+    this creates:
+    push a,
+    push b,
+    after the function definition - it should be before the function call
+    replace push with some way to harvest the parameters, and store them as we need them
+    */
+
+  struct ir_item item = {
+    .type = IR_ITEM_FUNCTION_PARAMS
+  };
+  item.function_params.params = (struct ir_param *)malloc(sizeof(struct ir_param) * count);
+  item.function_params.total = count;
+
+  int i = 0;
+  for (struct ast_param *ptr = func->params; ptr != NULL; ptr=ptr->next)
+  {
+    strcpy(item.function_params.params[i].text, ptr->text);
+    i++;
+  }
+  add_to_ir_list(&item);
+
+  ir_condition_body(&func->body);
+}
+
 void ir_line(struct ast_line *line)
 {
   switch(line->type)
@@ -277,6 +321,9 @@ void ir_line(struct ast_line *line)
       break;
     case AST_LINE_DECLARATION:
       ir_declaration(&line->declaration);
+      break;
+    case AST_LINE_FUNCTION_DEF:
+      ir_function_def(&line->function_def);
       break;
   }
 }

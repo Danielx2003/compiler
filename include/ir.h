@@ -74,11 +74,26 @@ struct ir_goto {
   int label;
 };
 
+struct ir_param {
+  char text[32];
+};
+
+struct ir_params {
+  struct ir_param *params;
+  int total;
+};
+
+struct ir_function_def {
+  char name[32];
+};
+
 enum ir_item_type {
   IR_ITEM_ASSIGN,
   IR_ITEM_CONDITIONAL,
   IR_ITEM_LABEL,
-  IR_ITEM_GOTO
+  IR_ITEM_GOTO,
+  IR_ITEM_FUNCTION_DEF,
+  IR_ITEM_FUNCTION_PARAMS
 };
 
 struct ir_item {
@@ -88,6 +103,8 @@ struct ir_item {
     struct ir_assign assign;
     struct ir_label label;
     struct ir_goto go_to;
+    struct ir_function_def function_def;
+    struct ir_params function_params;
   };
 };
 

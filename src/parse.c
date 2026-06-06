@@ -32,6 +32,32 @@ bool parse_terminator(struct lex_token_stream *tokens)
   return true;
 }
 
+bool parse_id(struct lex_token_stream *tokens, struct ast_id *id)
+{
+  if (parser_match(tokens, LEX_TOKEN_ID))
+  {
+    strcpy(id->text, parser_peek(tokens).text);
+    parser_consume(tokens);
+    return true;
+  }
+
+  while (
+    !parser_match(tokens, LEX_TOKEN_SEMI_COLON)
+    && !parser_match(tokens, LEX_TOKEN_CLOSE_BRACKET)
+    && !parser_match(tokens, LEX_TOKEN_EOF)
+  )
+  {
+    parser_consume(tokens);
+  }
+
+  if (parser_match(tokens, LEX_TOKEN_EOF))
+  {
+    return false;
+  }
+
+  return true;
+}
+
 bool parse_term(
     struct lex_token_stream *tokens,
     struct ast_term *term
@@ -363,36 +389,44 @@ bool parse_if(
   return true;
 }
 
-bool parse_params_next(struct lex_token_stream *tokens, struct ast_param **param)
+bool parse_params_next(struct lex_token_stream *tokens, struct ast_param **param, bool typed)
 {
   if (!parser_match(tokens, LEX_TOKEN_COMMA))
   {
-    *param = NULL;
+    // *param = NULL;
     return true;
   }
 
   struct ast_param *new_param = (struct ast_param *)malloc(sizeof(struct ast_param) * 1);
 
-  parser_consume(tokens);
-
-  if (!parser_match(tokens, LEX_TOKEN_INT))
-  {
-    goto cleanup;
-  }
-
+  // Consume LEX_TOKEN_COMMA
   parser_consume(tokens);
   
+  if (typed)
+  {
+    if (!parser_match(tokens, LEX_TOKEN_INT))
+    {
+      free(new_param);
+      *param = NULL;
+      goto cleanup;
+    }
+
+    parser_consume(tokens);
+  }
+
   if (!parser_match(tokens, LEX_TOKEN_ID))
   {
+    free(new_param);
+    *param = NULL;
     goto cleanup;
   }
   strcpy(new_param->text, parser_peek(tokens).text);
   parser_consume(tokens);
 
-
-  if (!parse_params_next(tokens, &new_param->next))
+  if (!parse_params_next(tokens, &new_param->next, typed))
   {
     free(new_param);
+    *param = NULL;
     return false;
   }
 
@@ -418,26 +452,34 @@ cleanup:
   return false;
 }
 
-bool parse_params(struct lex_token_stream *tokens, struct ast_param *param)
+bool parse_params(struct lex_token_stream *tokens, struct ast_param **param, bool typed)
 {
-  if (!parser_match(tokens, LEX_TOKEN_INT))
+  if (typed)
   {
-    goto cleanup;
-  }
+    if (!parser_match(tokens, LEX_TOKEN_INT))
+    {
+      goto cleanup;
+    }
 
-  parser_consume(tokens);
+    parser_consume(tokens);
+  }
 
   if (!parser_match(tokens, LEX_TOKEN_ID))
   {
     goto cleanup;
   }
 
-  param = (struct ast_param *)malloc(sizeof(struct ast_param) * 1);
-  strcpy(param->text, parser_peek(tokens).text);
+  *param = (struct ast_param *)malloc(sizeof(struct ast_param) * 1);
+  strcpy((*param)->text, parser_peek(tokens).text);
   parser_consume(tokens);
 
-  param->next = NULL;
-  return parse_params_next(tokens, &param->next);
+  (*param )->next = NULL;
+  if(!parse_params_next(tokens, &(*param)->next, typed))
+  {
+    return false;
+  }
+
+  return true;
 
 cleanup:
   error = true;
@@ -457,10 +499,124 @@ cleanup:
   return false;
 }
 
+bool parse_args_next(struct lex_token_stream *tokens, struct ast_arg **arg)
+{
+  if (!parser_match(tokens, LEX_TOKEN_COMMA))
+  {
+    // *param = NULL;
+    return true;
+  }
+
+  struct ast_arg *new_arg= (struct ast_arg *)malloc(sizeof(struct ast_arg) * 1);
+
+  // Consume LEX_TOKEN_COMMA
+  parser_consume(tokens);
+
+  if (
+    !parser_match(tokens, LEX_TOKEN_ID)
+    && !parser_match(tokens, LEX_TOKEN_CONSTANT)
+  )
+  {
+    printf("parse_args_next; Expected ID, got %d\n", parser_peek(tokens).type);
+    free(new_arg);
+    *arg = NULL;
+    goto cleanup;
+  }
+
+  if (parser_peek(tokens).type == LEX_TOKEN_ID)
+  {
+    strcpy(new_arg->text, parser_peek(tokens).text);
+  }
+  else if (parser_peek(tokens).type == LEX_TOKEN_CONSTANT)
+  {
+    new_arg->constant = atoi(parser_peek(tokens).text);
+  }
+  parser_consume(tokens);
+
+  if (!parse_args_next(tokens, &new_arg->next))
+  {
+    free(new_arg);
+    *arg = NULL;
+    return false;
+  }
+
+  *arg = new_arg;
+
+  return true;
+
+cleanup:
+  error = true;
+  while (
+    !parser_match(tokens, LEX_TOKEN_SEMI_COLON)
+    && !parser_match(tokens, LEX_TOKEN_CLOSE_BRACKET)
+    && !parser_match(tokens, LEX_TOKEN_EOF)
+  )
+  {
+    parser_consume(tokens);
+  }
+
+  if (parser_match(tokens, LEX_TOKEN_EOF))
+  {
+    return false;
+  }
+  return false;
+}
+
+bool parse_args(struct lex_token_stream *tokens, struct ast_arg **arg)
+{
+  if (
+    !parser_match(tokens, LEX_TOKEN_ID) 
+    && !parser_match(tokens, LEX_TOKEN_CONSTANT)
+    )
+  {
+    goto cleanup;
+  }
+
+  *arg = (struct ast_arg *)malloc(sizeof(struct ast_arg) * 1);
+
+  if (parser_peek(tokens).type == LEX_TOKEN_ID)
+  {
+    strcpy((*arg)->text, parser_peek(tokens).text);
+  }
+  else if (parser_peek(tokens).type == LEX_TOKEN_CONSTANT)
+  {
+    (*arg)->constant = atoi(parser_peek(tokens).text);
+  }
+  
+  parser_consume(tokens);
+
+  (*arg)->next = NULL;
+  if(!parse_args_next(tokens, &(*arg)->next))
+  {
+    return false;
+  }
+
+  return true;
+
+cleanup:
+  error = true;
+  while (
+    !parser_match(tokens, LEX_TOKEN_SEMI_COLON)
+    && !parser_match(tokens, LEX_TOKEN_CLOSE_BRACKET)
+    && !parser_match(tokens, LEX_TOKEN_EOF)
+  )
+  {
+    parser_consume(tokens);
+  }
+
+  if (parser_match(tokens, LEX_TOKEN_EOF))
+  {
+    return false;
+  }
+  return false;
+}
+
+
 void parse_function_def(struct lex_token_stream *tokens, struct ast_function_def *func)
 {
   if (!parser_match(tokens, LEX_TOKEN_INT))
   {
+    printf("parse_function_def: Expected LEX_TOKEN_INT\n");
     goto cleanup;
   }
 
@@ -468,27 +624,84 @@ void parse_function_def(struct lex_token_stream *tokens, struct ast_function_def
   parser_consume(tokens);
 
   // Update to be a parse_identifier, as parse_term allows for constants
-  parse_term(tokens, &func->name);
+  parse_id(tokens, &func->name);
 
   if (!parser_match(tokens, LEX_TOKEN_OPEN_BRACKET))
   {    
+    printf("parse_function_def: Expected LEX_TOKEN_OPEN_BRACKET\n");
     goto cleanup;
   }
 
   parser_consume(tokens);
   func->params = NULL;
-  parse_params(tokens, func->params);
 
   if (!parser_match(tokens, LEX_TOKEN_CLOSE_BRACKET))
   {
+    parse_params(tokens, &func->params, true);
+  }
+
+  if (!parser_match(tokens, LEX_TOKEN_CLOSE_BRACKET))
+  {
+    printf("parse_function_def: Expected LEX_TOKEN_CLOSE_BRACKET\n");
     goto cleanup;
   }
 
   parser_consume(tokens);
   if (!parse_condition_body(tokens, &func->body))
   {
-    printf("failed to parse body\n");
+    printf("function_def : failed to parse body\n");
   }
+
+  return;
+
+cleanup:
+  error = true;
+  while (
+    !parser_match(tokens, LEX_TOKEN_SEMI_COLON)
+    && !parser_match(tokens, LEX_TOKEN_CLOSE_BRACKET)
+    && !parser_match(tokens, LEX_TOKEN_EOF)
+  )
+  {
+    parser_consume(tokens);
+  }
+  if (parser_match(tokens, LEX_TOKEN_EOF))
+  {
+    return;
+  }
+  return;
+}
+
+void parse_function_call(struct lex_token_stream *tokens, struct ast_function_call *call)
+{
+  // call function_name ( type id, type id, ...
+  
+  if (!parse_id(tokens, &call->name))
+  {
+    return;
+  }
+
+  if (!parser_match(tokens, LEX_TOKEN_OPEN_BRACKET))
+  {
+    printf("parse_function_call: Expected LEX_TOKEN_OPEN_BRACKET. Got %d\n", parser_peek(tokens).type);
+    goto cleanup;
+  }
+
+  parser_consume(tokens);
+
+  if (!parser_match(tokens, LEX_TOKEN_CLOSE_BRACKET))
+  {
+    parse_args(tokens, &call->args);
+  }
+
+  if (!parser_match(tokens, LEX_TOKEN_CLOSE_BRACKET))
+  {
+    printf("parse_function_call: Expected LEX_TOKEN_CLOSE_BRACKET, got %d\n", parser_peek(tokens).type);
+    goto cleanup;
+  }
+
+  parser_consume(tokens);
+  
+  parse_terminator(tokens);
 
   return;
 
@@ -537,6 +750,12 @@ void parse_line(
     parser_consume(tokens);
     line->type = AST_LINE_FUNCTION_DEF;
     parse_function_def(tokens, &line->function_def);
+  }
+  else if (parser_match(tokens, LEX_TOKEN_CALL))
+  {
+    parser_consume(tokens);
+    line->type = AST_LINE_FUNCTION_CALL;
+    parse_function_call(tokens, &line->function_call);
   }
   else
   {

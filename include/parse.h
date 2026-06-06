@@ -73,9 +73,23 @@ struct ast_param {
 
 struct ast_function_def {
   enum ast_type ret_type;
-  struct ast_term name;
+  struct ast_id name;
   struct ast_param *params;
   struct ast_body body;
+};
+
+struct ast_arg {
+  enum ast_term_type type;
+  union {
+    int constant;
+    char text[32];
+  };
+  struct ast_arg *next;
+};
+
+struct ast_function_call {
+  struct ast_id name;
+  struct ast_arg *args;
 };
 
 struct ast_line {
@@ -85,6 +99,7 @@ struct ast_line {
     struct ast_assignment assignment;
     struct ast_conditional conditional;
     struct ast_function_def function_def;
+    struct ast_function_call function_call;
   };
 };
 

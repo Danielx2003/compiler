@@ -1,4 +1,16 @@
 func int add_two(int a, int b)
 {
   int c = a + b;
+  while (c < 10)
+  {
+      c = c + 1;
+  }
+}
+
+func int main()
+{
+  call add_two(1, 2);
+  int x = 10;
+  int y = 11;
+  call add_two(x, y);
 }

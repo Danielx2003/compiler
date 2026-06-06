@@ -69,6 +69,11 @@ void add_to_scope(struct symbol_table_stack_t *stack, struct ast_term *term)
     set_symbol_table_size(&stack->stack[stack->top], stack->stack[stack->top].num_symbols * 2);
   }
 
+  if (scope_lookup(stack, term->id.text))
+  {
+    printf("This term has already been added. Double Definition\n");
+  }
+
   strcpy(stack->stack[stack->top].symbols[stack->stack[stack->top].top], term->id.text);
   stack->stack[stack->top].top++;
 }
@@ -130,7 +135,7 @@ void scope_term(struct symbol_table_stack_t *stack, struct ast_term *term)
 
 void scope_expr_prime(struct symbol_table_stack_t *stack, struct ast_expr_tail *tail)
 {
-  if (tail == NULL || tail->next == NULL)
+  if (tail == NULL)
   {
     return;
   }
@@ -171,6 +176,20 @@ void scope_conditional(struct symbol_table_stack_t *stack, struct ast_conditiona
   pop_symbol_table_stack(stack);
 }
 
+void scope_function_def(struct symbol_table_stack_t *stack, struct ast_function_def *func)
+{
+  for (struct ast_param *ptr = func->params; ptr!= NULL; ptr = ptr->next)
+  {
+    struct ast_term temp = {
+      .type = AST_TERM_ID
+    };
+    strcpy(temp.id.text, ptr->text);
+    add_to_scope(stack, &temp);
+  }
+
+  scope_body(stack, &func->body);
+}
+
 void scope_line(struct symbol_table_stack_t *stack, struct ast_line *line)
 {
   if (line->type == AST_LINE_ASSIGNMENT)
@@ -184,6 +203,10 @@ void scope_line(struct symbol_table_stack_t *stack, struct ast_line *line)
   else if (line->type == AST_LINE_DECLARATION)
   {
     scope_declaration(stack, &line->declaration);
+  }
+  else if (line->type == AST_LINE_FUNCTION_DEF)
+  {
+    scope_function_def(stack, &line->function_def);
   }
 }
 
