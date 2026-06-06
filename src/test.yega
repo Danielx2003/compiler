@@ -1,5 +1,5 @@
 int b = 1 + 2;
-while (b == 4)
+while (b == 3)
 {
   b = b + 1;
   int c = 50;
