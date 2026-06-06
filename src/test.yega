@@ -1,11 +1,11 @@
-int x = 1;
-if (x == 5) 
-{ 
-  int a = 1;
-  if (x == 4)
+int a = 1 + 2;
+if (a == 3)
+{
+  int b = 4;
+  if (b == 4)
   {
-    int b = 2;
+    int c = 25;
   }
-  int c = 3;
+  int d = 10;
 }
-int d = 4;
+int e = 59;

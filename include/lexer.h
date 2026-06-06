@@ -1,6 +1,8 @@
-#include <stddef.h>
-
 #pragma once
+
+#include "char_stream.h"
+
+#include <stddef.h>
 
 enum lex_token_type {
   LEX_TOKEN_TYPE,
@@ -33,15 +35,19 @@ struct lex_token_t {
   } ctx;
 };
 
-struct lex_token_list_t {
-  struct lex_token_t *tokens;
+struct lex_token_stream {
+  struct lex_token_t *data;
   int cur_idx;
-  int total_tokens;
+  int capacity;
 };
 
 int lex_tokenize_stream(
-    struct lex_token_list_t *lexer_output,
-    char *input,
-    size_t input_size,
-    size_t *token_size
+  struct lex_token_stream *tokens,
+  struct char_stream *stream
 );
+
+enum lex_token_type get_token_type_from_text(char *buf);
+void add_token_to_list(struct lex_token_stream *tokens, struct lex_token_t *new_token);
+struct lex_token_t* get_prev_open_scope_token(struct lex_token_stream *tokens, int tokens_since);
+struct lex_token_t *create_lex_token(enum lex_token_type type, char *text, size_t text_len, void *ctx, size_t ctx_size);
+
