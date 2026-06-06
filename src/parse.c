@@ -154,14 +154,46 @@ bool parse_equals(struct lex_token_stream *tokens)
   return true;
 }
 
+bool parse_declaration(
+    struct lex_token_stream *tokens,
+    struct ast_declaration *declaration)
+{
+  if (parser_match(tokens, LEX_TOKEN_INT)) // will change to LEX_TOKEN_TYPE in the future
+  {
+    declaration->type = AST_TYPE_INT;
+    parser_consume(tokens);
+    if (!parse_term(tokens, &declaration->term)
+        || !parse_equals(tokens)
+        || !parse_expr(tokens, &declaration->expr))
+    {
+      return false;
+    }
+
+  }
+  else
+  {
+    printf("Error parsing assignment: expected int, recieved: %d, at index %d\n", parser_peek(tokens).type, tokens->cur_idx);
+    error = true;
+    while (
+      !parser_match(tokens, LEX_TOKEN_SEMI_COLON)
+      && !parser_match(tokens, LEX_TOKEN_CLOSE_SCOPE)
+      && !parser_match(tokens, LEX_TOKEN_EOF))
+    {
+      parser_consume(tokens);
+    }
+    if (parser_match(tokens, LEX_TOKEN_EOF)) { return false; }
+  }
+
+  parse_terminator(tokens);
+  return true;
+}
+
 bool parse_assignment(
     struct lex_token_stream *tokens,
     struct ast_assignment *assignment)
 {
-  if (parser_match(tokens, LEX_TOKEN_INT))
+  if (parser_match(tokens, LEX_TOKEN_ID))
   {
-    assignment->type = AST_TYPE_INT;
-    parser_consume(tokens);
     if (!parse_term(tokens, &assignment->term)
         || !parse_equals(tokens)
         || !parse_expr(tokens, &assignment->expr))
@@ -172,7 +204,7 @@ bool parse_assignment(
   }
   else
   {
-    printf("Error parsing assignment: expected int, recieved: %d, at index %d\n", parser_peek(tokens).type, tokens->cur_idx);
+    printf("Error parsing assignment: expected id, recieved: %d, at index %d\n", parser_peek(tokens).type, tokens->cur_idx);
     error = true;
     while (
       !parser_match(tokens, LEX_TOKEN_SEMI_COLON)
@@ -288,6 +320,39 @@ bool parse_condition_body(
   }
 }
 
+bool parse_while(
+  struct lex_token_stream *tokens,
+  struct ast_conditional *cond
+)
+{
+  if (parser_match(tokens, LEX_TOKEN_OPEN_BRACKET))
+  {
+    cond->type = AST_CONDITIONAL_WHILE;
+    parser_consume(tokens);
+    parse_condition(tokens, &cond->condition);
+    parse_condition_body(tokens, &cond->body);
+  }
+  else
+  {
+    while (
+      !parser_match(tokens, LEX_TOKEN_SEMI_COLON)
+      && !parser_match(tokens, LEX_TOKEN_CLOSE_BRACKET)
+      && !parser_match(tokens, LEX_TOKEN_EOF)
+    )
+    {
+      parser_consume(tokens);
+    }
+
+    if (parser_match(tokens, LEX_TOKEN_EOF))
+    {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+
 bool parse_if(
   struct lex_token_stream *tokens,
   struct ast_conditional *cond
@@ -295,6 +360,7 @@ bool parse_if(
 {
   if (parser_match(tokens, LEX_TOKEN_OPEN_BRACKET))
   {
+    cond->type = AST_CONDITIONAL_IF;
     parser_consume(tokens);
     parse_condition(tokens, &cond->condition);
     parse_condition_body(tokens, &cond->body);
@@ -330,6 +396,18 @@ void parse_line(
     line->type = AST_LINE_CONDITIONAL;
     parse_if(tokens, &line->conditional);
   }
+  else if (parser_match(tokens, LEX_TOKEN_WHILE))
+  {
+    /* Change from AST_LINE_CONDITIONAL to AST_LINE_WHILE? */
+    parser_consume(tokens);
+    line->type = AST_LINE_CONDITIONAL;
+    parse_while(tokens, &line->conditional);
+  }
+  else if (parser_match(tokens, LEX_TOKEN_TYPE) || parser_match(tokens, LEX_TOKEN_INT))
+  {
+    line->type = AST_LINE_DECLARATION;
+    parse_declaration(tokens, &line->declaration);
+  }
   else
   {
     line->type = AST_LINE_ASSIGNMENT;
@@ -344,6 +422,7 @@ struct ast_body* parse_lexer_tokens(struct lex_token_stream *tokens, int num_lin
   tokens->cur_idx = 0;
   struct ast_body *root = (struct ast_body *)calloc(1, sizeof(struct ast_body));
   root->num_lines = num_lines;
+
 
   root->lines = (struct ast_line *)malloc(sizeof(struct ast_line) * num_lines);
 

@@ -52,6 +52,7 @@ int main()
     return -1;
   }
 
+  
   struct ir_stream ir_stream = {0};
   ir_ast(body, &ir_stream);
 
@@ -62,7 +63,7 @@ int main()
   printf("\n");
 
   generate_yasm(&ir_stream);
-
+  
   // free(root);
   // free(lexer_output.tokens); 
 }

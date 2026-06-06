@@ -39,6 +39,7 @@ enum lex_token_type get_token_type_from_text(char *buf)
   if (strcmp(buf, "return") == 0) { return LEX_TOKEN_RETURN; }
   if (strcmp(buf, "int") == 0) { return LEX_TOKEN_INT; }
   if (strcmp(buf, "if") == 0) { return LEX_TOKEN_IF; }
+  if (strcmp(buf, "while") == 0) { return LEX_TOKEN_WHILE; }
   if (strcmp(buf, "==") == 0) { return LEX_TOKEN_EQUIV; }
   if (strcmp(buf, ">") == 0) { return LEX_TOKEN_GREATER_THAN; }
   if (strcmp(buf, "<") == 0) { return LEX_TOKEN_GREATER_THAN; }

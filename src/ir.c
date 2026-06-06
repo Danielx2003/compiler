@@ -24,6 +24,17 @@ void ir_create_label(int label)
   add_to_ir_list(&item);
 }
 
+void ir_create_goto(int label)
+{
+  struct ir_item item = {
+    .type = IR_ITEM_GOTO,
+    .go_to = {
+      .label = label
+    }
+  };
+  add_to_ir_list(&item);
+}
+
 void ir_set_term_from_ast(struct ir_term *ir, struct ast_term *ast)
 {
   if (ast->type == AST_TERM_ID)
@@ -154,6 +165,20 @@ struct ir_ret ir_expr(struct ast_expr *expr)
   return ret;
 }
 
+struct ir_ret ir_declaration(struct ast_declaration *decl)
+{
+  struct ir_ret expr_ret = ir_expr(&decl->expr);
+
+  struct ir_item item = {0};
+  item.type = IR_ITEM_ASSIGN;
+  
+  ir_set_term_from_ast(&item.assign.lhs, &decl->term);
+  ir_set_term_from_ret(&item.assign.rhs_1, &expr_ret);
+  add_to_ir_list(&item);
+
+  return (struct ir_ret) {0};
+}
+
 struct ir_ret ir_assignment(struct ast_assignment *assign)
 {
   struct ir_ret expr_ret = ir_expr(&assign->expr);
@@ -215,12 +240,26 @@ void ir_condition_body(struct ast_body *body)
 
 void ir_conditional(struct ast_conditional *cond)
 {
+  int while_label = -1;
+  if (cond->type == AST_CONDITIONAL_WHILE)
+  {
+    while_label = ++label_count;
+    ir_create_label(while_label);
+  }
+
+
   struct ir_ret condition_ret = ir_condition(&cond->condition);
   int local_label = ++label_count;
   ir_create_if(condition_ret.temp, local_label);
 
-  // if
+
   ir_condition_body(&cond->body);
+  
+  if (cond->type == AST_CONDITIONAL_WHILE)
+  {
+    ir_create_goto(while_label);
+  }
+
   ir_create_label(local_label);
 
   // else - not in the language yet
@@ -235,6 +274,9 @@ void ir_line(struct ast_line *line)
       break;
     case AST_LINE_ASSIGNMENT:
       ir_assignment(&line->assignment);
+      break;
+    case AST_LINE_DECLARATION:
+      ir_declaration(&line->declaration);
       break;
   }
 }

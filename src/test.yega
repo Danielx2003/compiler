@@ -1,11 +1,6 @@
-int a = 1 + 2;
-if (a == 3)
+int b = 1 + 2;
+while (b == 4)
 {
-  int b = 4;
-  if (b == 4)
-  {
-    int c = 25;
-  }
-  int d = 10;
+  b = b + 1;
+  int c = 50;
 }
-int e = 59;

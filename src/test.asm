@@ -7,24 +7,21 @@ mov rbp, rsp
 sub rsp, 32
 mov rax, 2
 add rax, 1
-mov [rsp - 0], rax
-mov rax, [rsp - 0]
 mov [rsp - 8], rax
-mov rax, 3
-cmp rax, [rsp - 8]
-jne L1
-mov rax, 4
+mov rax, [rsp - 8]
 mov [rsp - 16], rax
+L1:
 mov rax, 4
 cmp rax, [rsp - 16]
 jne L2
-mov rax, 25
+mov rax, 1
+add rax, [rsp - 16]
 mov [rsp - 24], rax
-L2:
-mov rax, 10
+mov rax, [rsp - 24]
+mov [rsp - 16], rax
+mov rax, 50
 mov [rsp - 32], rax
-L1:
-mov rax, 59
-mov [rsp - 40], rax
+jmp L1
+L2:
 mov rax, 60
 syscall

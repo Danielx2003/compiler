@@ -23,6 +23,7 @@ enum lex_token_type {
   LEX_TOKEN_EQUIV, // ==
   LEX_TOKEN_LESS_THAN, // <
   LEX_TOKEN_GREATER_THAN, // >
+  LEX_TOKEN_WHILE,
   LEX_TOKEN_EOF
 };
 

@@ -69,6 +69,11 @@ void print_ir_label(struct ir_label *label)
   printf("L%d:\n", label->label);
 }
 
+void print_ir_goto(struct ir_goto *go_to)
+{
+  printf("goto L%d\n", go_to->label);
+}
+
 void print_ir_conditional(struct ir_conditional *cond)
 {
   printf("ifz t%d goto L%d\n", cond->temp, cond->label);
@@ -87,5 +92,7 @@ void print_ir_item(struct ir_item *item)
     case IR_ITEM_CONDITIONAL:
       print_ir_conditional(&item->conditional);
       break;
+    case IR_ITEM_GOTO:
+      print_ir_goto(&item->go_to);
   }
 }

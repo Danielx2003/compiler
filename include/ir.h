@@ -2,7 +2,6 @@
 
 #include "parse.h"
 
-
 enum ir_ret_type {
   IR_RET_TYPE_TEMP,
   IR_RET_TYPE_ID,
@@ -71,10 +70,15 @@ struct ir_label {
   int label;
 };
 
+struct ir_goto {
+  int label;
+};
+
 enum ir_item_type {
   IR_ITEM_ASSIGN,
   IR_ITEM_CONDITIONAL,
-  IR_ITEM_LABEL
+  IR_ITEM_LABEL,
+  IR_ITEM_GOTO
 };
 
 struct ir_item {
@@ -83,6 +87,7 @@ struct ir_item {
     struct ir_conditional conditional;
     struct ir_assign assign;
     struct ir_label label;
+    struct ir_goto go_to;
   };
 };
 

@@ -4,9 +4,14 @@
 #include <string.h>
 #include <stdlib.h>
 
-int offset = 0;
+int offset = 8;
 int OFFSETS[256];
 FILE *file;
+
+void generate_goto(struct ir_goto *go_to)
+{
+  fprintf(file, "jmp L%d\n", go_to->label);
+}
 
 void generate_conditional(struct ir_conditional *cond)
 {
@@ -41,23 +46,27 @@ void generate_assign(struct ir_assign *assign)
     
     if (assign->lhs.type == IR_TERM_TEMP)
     {
-      printf("set: t%d = %d\n", assign->lhs.temp, offset);
-      OFFSETS[assign->lhs.temp] = offset;
+      if (OFFSETS[assign->lhs.temp] == 0)
+      {
+        printf("set: t%d = %d\n", assign->lhs.temp, offset);
+        OFFSETS[assign->lhs.temp] = offset;
+        offset += 8;
+      }
       fprintf(file, "mov [rsp - %d], rax\n", OFFSETS[assign->lhs.temp]);
-      offset += 8;
     }
     else if (assign->lhs.type == IR_TERM_ID)
     {
-      printf("set: %s = %d\n", assign->lhs.text, offset);
-      OFFSETS[assign->lhs.text[0]] = offset;
+      if (OFFSETS[assign->lhs.text[0]] == 0)
+      {
+        printf("set: %s = %d\n", assign->lhs.text, offset);
+        OFFSETS[assign->lhs.text[0]] = offset;
+        offset += 8;
+      }
       fprintf(file, "mov [rsp - %d], rax\n", OFFSETS[assign->lhs.text[0]]);
-      offset += 8;
     }
-
   }
   else if (assign->op == IR_ASSIGN_OP_ADD)
   {
-
     if (
       assign->rhs_2.type == IR_TERM_ID
     )
@@ -90,17 +99,24 @@ void generate_assign(struct ir_assign *assign)
 
     if (assign->lhs.type == IR_TERM_TEMP)
     {
-      printf("set: t%d = %d\n", assign->lhs.temp, offset);
-      OFFSETS[assign->lhs.temp] = offset;
+      if (OFFSETS[assign->lhs.temp] == 0)
+      {
+        printf("set: t%d = %d\n", assign->lhs.temp, offset);
+        OFFSETS[assign->lhs.temp] = offset;
+        offset += 8;
+      }
+
       fprintf(file, "mov [rsp - %d], rax\n", OFFSETS[assign->lhs.temp]);
-      offset += 8;
     }
     else if (assign->lhs.type == IR_TERM_ID)
     {
-      printf("set: %s = %d\n", assign->lhs.text, offset);
-      OFFSETS[assign->lhs.text[0]] = offset;
-      fprintf(file, "mov [rsp - %d], rax\n", OFFSETS[assign->lhs.text[0]]);
-      offset += 8;
+      if (OFFSETS[assign->lhs.text[0]] == 0)
+      {
+        printf("set: %s = %d\n", assign->lhs.text, offset);
+        OFFSETS[assign->lhs.text[0]] = offset;
+        offset += 8;
+      }
+      fprintf(file, "mov [rsp - %d], rax (lhs = id)\n", OFFSETS[assign->lhs.text[0]]);
     }
 
   }
@@ -152,6 +168,8 @@ void generate_item(struct ir_item *item)
     case IR_ITEM_CONDITIONAL:
       generate_conditional(&item->conditional);
       break;
+    case IR_ITEM_GOTO:
+      generate_goto(&item->go_to);
   }
 }
 
@@ -170,7 +188,6 @@ void generate_yasm(struct ir_stream *stream)
   for (int i = 0; i < stream->total; i++)
   {
     generate_item(&stream->items[i]);
-    printf("\n");
   }
 
   str = "mov rax, 60\nsyscall\n";

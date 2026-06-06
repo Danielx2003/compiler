@@ -145,9 +145,15 @@ void scope_expr(struct symbol_table_stack_t *stack, struct ast_expr *expr)
   scope_expr_prime(stack, expr->tail);
 }
 
+void scope_declaration(struct symbol_table_stack_t *stack,struct ast_declaration *decl)
+{
+  add_to_scope(stack, &decl->term);
+  scope_expr(stack, &decl->expr);
+}
+
 void scope_assignment(struct symbol_table_stack_t *stack, struct ast_assignment *assign)
 {
-  add_to_scope(stack, &assign->term);
+  scope_term(stack, &assign->term);
   scope_expr(stack, &assign->expr);
 }
 
@@ -174,6 +180,10 @@ void scope_line(struct symbol_table_stack_t *stack, struct ast_line *line)
   else if (line->type == AST_LINE_CONDITIONAL)
   {
     scope_conditional(stack, &line->conditional);
+  }
+  else if (line->type == AST_LINE_DECLARATION)
+  {
+    scope_declaration(stack, &line->declaration);
   }
 }
 
