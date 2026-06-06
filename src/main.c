@@ -1,3 +1,4 @@
+#include "cfg.h"
 #include "codegen.h"
 #include "file_stream.h"
 #include "ir.h"
@@ -61,7 +62,8 @@ int main()
   }
   printf("\n");
 
-  generate_yasm(&ir_stream);
+  cfg_walk_ir(&ir_stream);
+  // generate_yasm(&ir_stream);
 
   // free(root);
   // free(lexer_output.tokens); 
