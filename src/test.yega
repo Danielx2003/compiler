@@ -2,10 +2,4 @@ int a = 1 + 2;
 if (a == 3)
 {
   int b = 4;
-  if (b == 4)
-  {
-    int c = 25;
-  }
-  int d = 10;
 }
-int e = 59;

@@ -24,6 +24,17 @@ void ir_create_label(int label)
   add_to_ir_list(&item);
 }
 
+void ir_create_goto(int label)
+{
+  struct ir_item item = {
+    .type = IR_ITEM_GOTO,
+    .go_to = {
+      .label = label
+    }
+  };
+  add_to_ir_list(&item);
+}
+
 void ir_set_term_from_ast(struct ir_term *ir, struct ast_term *ast)
 {
   if (ast->type == AST_TERM_ID)
@@ -215,12 +226,26 @@ void ir_condition_body(struct ast_body *body)
 
 void ir_conditional(struct ast_conditional *cond)
 {
+  int while_label = -1;
+  if (cond->type == AST_CONDITIONAL_WHILE)
+  {
+    while_label = ++label_count;
+    ir_create_label(while_label);
+  }
+
+
   struct ir_ret condition_ret = ir_condition(&cond->condition);
   int local_label = ++label_count;
   ir_create_if(condition_ret.temp, local_label);
 
-  // if
+
   ir_condition_body(&cond->body);
+  
+  if (cond->type == AST_CONDITIONAL_WHILE)
+  {
+    ir_create_goto(while_label);
+  }
+
   ir_create_label(local_label);
 
   // else - not in the language yet

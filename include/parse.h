@@ -56,6 +56,7 @@ struct ast_condition {
 };
 
 struct ast_conditional {
+  enum ast_conditional_type type;
   struct ast_condition condition;
   struct ast_body body;
 };
