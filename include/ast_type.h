@@ -9,10 +9,11 @@ enum ast_conditional_type {
 enum ast_line_type {
   AST_LINE_NULL,
   AST_LINE_ASSIGNMENT,
-  AST_LINE_CONDITIONAL,
-  AST_LINE_DECLARATION,
-  AST_LINE_FUNCTION_DEF,
-  AST_LINE_FUNCTION_CALL
+  AST_LINE_IF_STMT,
+  AST_LINE_WHILE_LOOP,
+  AST_LINE_VAR_DECL,
+  AST_LINE_FUNC_DECL,
+  AST_LINE_FUNC_CALL
 };
 
 enum ast_type {
@@ -22,7 +23,8 @@ enum ast_type {
 
 enum ast_term_type {
   AST_TERM_ID,
-  AST_TERM_CONSTANT
+  AST_TERM_CONSTANT,
+  AST_TERM_FUNC_CALL
 };
 
 enum ast_op_type {
@@ -32,3 +34,5 @@ enum ast_op_type {
   AST_OP_LESS_THAN,
   AST_OP_GREATER_THAN  
 };
+
+

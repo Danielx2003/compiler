@@ -1,16 +1,15 @@
-func int add_two(int a, int b)
+int add_two(int a int b)
 {
-  int c = a + b;
-  while (c < 10)
+  int x = a  b;
+}
+
+int main(int a, int b)
+{
+  int x = 1 + 2;
+  while (x = 1) 
   {
-      c = c + 1;
+    x = x + 1;
+    int test = add_two(1, 2);
   }
 }
 
-func int main()
-{
-  call add_two(1, 2);
-  int x = 10;
-  int y = 11;
-  call add_two(x, y);
-}
