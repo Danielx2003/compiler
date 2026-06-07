@@ -1,12 +1,12 @@
-int add_two(int a int b)
+int add_two(int a, int b)
 {
-  int x = a  b;
+  int x = a + b;
 }
 
 int main(int a, int b)
 {
   int x = 1 + 2;
-  while (x = 1) 
+  while (x == 1) 
   {
     x = x + 1;
     int test = add_two(1, 2);

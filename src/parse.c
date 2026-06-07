@@ -411,7 +411,6 @@ bool parse_body(
   if (body->lines != NULL)
   {
     body->num_lines = parser_peek(tokens).ctx.num_lines;
-    printf("Body has: %d lines\n", body->num_lines);
   }
 
   if (parser_match(tokens, LEX_TOKEN_OPEN_SCOPE))
@@ -592,7 +591,6 @@ bool parse_params(struct lex_token_stream *tokens, struct ast_param **param)
   if (!parser_match(tokens, LEX_TOKEN_INT))
   {
     printf("expected int: got %d\n", parser_peek(tokens).type);
-    parser_consume(tokens);
     goto cleanup;
   }
 
@@ -652,7 +650,6 @@ bool parse_args_next(struct lex_token_stream *tokens, struct ast_arg **arg)
     && !parser_match(tokens, LEX_TOKEN_CONSTANT)
   )
   {
-    printf("parse_args_next; Expected ID, got %d\n", parser_peek(tokens).type);
     free(new_arg);
     *arg = NULL;
     goto cleanup;
@@ -707,7 +704,6 @@ bool parse_args(struct lex_token_stream *tokens, struct ast_arg **arg)
     )
   {
 
-    printf("Parse_args: Expected Type Id or Constant, recieved: %d\n", parser_peek(tokens).type);
     goto cleanup;
   }
 
@@ -755,7 +751,6 @@ void parse_function_def(struct lex_token_stream *tokens, struct ast_func_decl *f
 {
   if (!parser_match(tokens, LEX_TOKEN_INT))
   {
-    printf("parse_function_def: Expected LEX_TOKEN_INT\n");
     goto cleanup;
   }
 
@@ -767,7 +762,6 @@ void parse_function_def(struct lex_token_stream *tokens, struct ast_func_decl *f
 
   if (!parser_match(tokens, LEX_TOKEN_OPEN_BRACKET))
   {    
-    printf("parse_function_def: Expected LEX_TOKEN_OPEN_BRACKET\n");
     goto cleanup;
   }
 
@@ -781,13 +775,15 @@ void parse_function_def(struct lex_token_stream *tokens, struct ast_func_decl *f
 
   if (!parser_match(tokens, LEX_TOKEN_CLOSE_BRACKET))
   {
-    printf("parse_function_def: Expected LEX_TOKEN_CLOSE_BRACKET\n");
     goto cleanup;
   }
 
   parser_consume(tokens);
 
-  parse_body(tokens, &func->body);
+  if (!parse_body(tokens, &func->body))
+  {
+  }
+
   return;
 
 cleanup:
@@ -818,7 +814,6 @@ void parse_func_call(struct lex_token_stream *tokens, struct ast_func_call *call
 
   if (!parser_match(tokens, LEX_TOKEN_OPEN_BRACKET))
   {
-    printf("parse_func_call: Expected LEX_TOKEN_OPEN_BRACKET. Got %d\n", parser_peek(tokens).type);
     goto cleanup;
   }
 
@@ -835,7 +830,6 @@ void parse_func_call(struct lex_token_stream *tokens, struct ast_func_call *call
 
   if (!parser_match(tokens, LEX_TOKEN_CLOSE_BRACKET))
   {
-    printf("parse_func_call: Expected LEX_TOKEN_CLOSE_BRACKET, got %d\n", parser_peek(tokens).type);
     goto cleanup;
   }
 
