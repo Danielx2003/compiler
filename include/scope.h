@@ -5,23 +5,28 @@
 #include <stdbool.h>
 
 struct symbol_table_t {
-  char *symbols[8];
-  int num_symbols;
-  int top;
+  char **symbols;
+  int capacity;
+  int cur_idx;
+};
+
+struct func_table_t {
+  struct ast_func_decl **funcs;
+  int capacity;
+  int cur_idx;
 };
 
 struct symbol_table_stack_t {
   struct symbol_table_t *stack;
-  int top;
-  int size;
+  struct func_table_t *func_stack;
+  int cur_idx;
+  int capacity;
 };
-
-
 
 void scope_root(struct symbol_table_stack_t *stack, struct ast_body *body);
 void scope_line(struct symbol_table_stack_t *stack, struct ast_line *line);
 void scope_assignment(struct symbol_table_stack_t *stack, struct ast_assignment *assign);
-void scope_conditional(struct symbol_table_stack_t *stack, struct ast_conditional *conditional);
+void scope_conditional(struct symbol_table_stack_t *stack, struct ast_if_stmt *conditional);
 void scope_term(struct symbol_table_stack_t *stack, struct ast_term *term);
 void scope_expr(struct symbol_table_stack_t *stack, struct ast_expr *expr);
 void scope_body(struct symbol_table_stack_t *stack, struct ast_body *body);

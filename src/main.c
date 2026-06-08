@@ -44,15 +44,18 @@ int main()
   printf("\n");
  
   
-  struct ast_body *body = parse_lexer_tokens(&tokens, num_lines);
-  
+  struct ast_body *body = parse_lexer_tokens(&tokens, num_lines); 
   if (!scope_res(body))
   {
     printf("Failed to resolve variable\n");
     return -1;
   }
+  else 
+  {
+    printf("Scopes resolved\n");
+  }
 
-  
+  /*
   struct ir_stream ir_stream = {0};
   ir_ast(body, &ir_stream);
 
@@ -61,7 +64,7 @@ int main()
     print_ir_item(&ir_stream.items[i]);
   }
   printf("\n");
-
+  */
   // generate_yasm(&ir_stream);
   // free(root);
   // free(lexer_output.tokens); 
