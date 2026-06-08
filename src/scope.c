@@ -9,6 +9,55 @@
 int indent = 0;
 bool scope_error = false;
 
+
+bool func_decl_lookup(struct symbol_table_stack_t *stack, struct ast_func_decl *func)
+{
+  int param_count = 0;
+  for (struct ast_param *ptr = func->params; ptr != NULL; ptr=ptr->next)
+  {
+    param_count++;
+  }
+
+  for (int i = stack->func_stack->cur_idx; i >= 0; i--)
+  {
+    if (
+      strcmp(func->id.text, stack->func_stack->funcs[i]->id.text) == 0)
+    {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool func_lookup(struct symbol_table_stack_t *stack, struct ast_func_call *func)
+{
+  int arg_count = 0;
+  for (struct ast_arg *ptr = func->args; ptr != NULL; ptr=ptr->next)
+  {
+    arg_count++;
+  }
+
+  for (int i = stack->func_stack->cur_idx; i >= 0; i--)
+  {
+    int expected_arg_count = 0;
+    for (struct ast_param *ptr = stack->func_stack->funcs[i]->params; ptr != NULL; ptr=ptr->next)
+    {
+      expected_arg_count++;
+    }
+
+    if (
+      strcmp(func->id.text, stack->func_stack->funcs[i]->id.text) == 0
+      && arg_count == expected_arg_count
+    )
+    {
+      return true;
+    }
+  }
+
+return false;
+}
+
 bool is_symbol_table_full(struct symbol_table_t *table)
 {
   if (table->cur_idx+1 >= table->capacity)
@@ -18,6 +67,31 @@ bool is_symbol_table_full(struct symbol_table_t *table)
 
   return false;
 }
+
+bool is_func_table_full(struct func_table_t *table)
+{
+  if (table->cur_idx+1 >= table->capacity)
+  {
+    return true;
+  }
+
+  return false;
+}
+
+bool initialise_func_table(struct func_table_t *table)
+{
+  table->funcs= (struct ast_func_decl**)malloc(8 * sizeof(struct ast_func_decl *));
+
+  for (int i = 0; i < 8; i++)
+  {
+    table->funcs[i] = (struct ast_func_decl *)malloc(sizeof(struct ast_func_decl));
+  }
+
+  table->capacity = 8;
+
+  return true;
+}
+
 
 bool initialise_symbol_table(struct symbol_table_t *table)
 {
@@ -29,6 +103,7 @@ bool initialise_symbol_table(struct symbol_table_t *table)
   }
 
   table->capacity = 8;
+
   return true;
 }
 
@@ -37,12 +112,40 @@ bool initialise_symbol_table_stack(struct symbol_table_stack_t *stack)
   stack->stack = (struct symbol_table_t *)calloc(8, sizeof(struct symbol_table_t));
   if (stack->stack == NULL) { return false; }
   stack->capacity = 8;
+ 
+  stack->func_stack = (struct func_table_t *)calloc(8, sizeof(struct func_table_t));
+  if (stack->func_stack == NULL) { return false; }
 
   for (int i = 0; i < 8; i++)
   {
     if (!initialise_symbol_table(&stack->stack[i])) { return false; }
+    if (!initialise_func_table(&stack->func_stack[i])) { return false; }
   }
+
   return true;
+}
+
+void set_func_table_size(struct func_table_t *table, int size)
+{
+  int old_size = table->capacity;
+  
+  struct ast_func_decl **temp = (struct ast_func_decl **)realloc(table->funcs, size * sizeof(struct ast_func_decl *));
+
+  if (temp == NULL)
+  {
+    printf("failed to alloc\n");
+    return;
+  }
+
+  table->funcs = temp;
+
+  for (int i = old_size; i < size; i++)
+  {
+    // Each symbol is at most 32 bytes long
+    table->funcs[i] = (struct ast_func_decl *)malloc(sizeof(struct ast_func_decl));
+  }
+
+  table->capacity = size;
 }
 
 void set_symbol_table_size(struct symbol_table_t *table, int size)
@@ -71,6 +174,27 @@ void set_symbol_table_size(struct symbol_table_t *table, int size)
 void set_symbol_table_stack_size(struct symbol_table_stack_t *stack, int size)
 {
  stack->stack = realloc(stack->stack, sizeof(struct symbol_table_t) * size);
+}
+
+void set_func_table_stack_size(struct symbol_table_stack_t *stack, int size)
+{
+ stack->func_stack = realloc(stack->func_stack, sizeof(struct func_table_t) * size);
+}
+
+void add_func_to_scope(struct symbol_table_stack_t *stack, struct ast_func_decl *func)
+{
+  if (is_func_table_full(stack->func_stack))
+  {
+    set_func_table_size(stack->func_stack, stack->func_stack->capacity * 2);
+  }
+
+  if (func_decl_lookup(stack, func))
+  {
+    printf("This function has already been added. Double Definition\n");
+  }
+
+  memcpy(stack->func_stack->funcs[stack->func_stack->cur_idx], func, sizeof(struct ast_func_decl));
+  stack->func_stack->cur_idx++;
 }
 
 void add_id_to_scope(struct symbol_table_stack_t *stack, struct ast_id *id)
@@ -186,7 +310,7 @@ void scope_term(struct symbol_table_stack_t *stack, struct ast_term *term)
   }
   else if (term->type == AST_TERM_FUNC_CALL)
   {
-    if (!scope_lookup(stack, term->func_call.id.text))
+    if (!func_lookup(stack, &term->func_call))
     {
       printf("Failed to resolve: %s\n", term->func_call.id.text);
       scope_error = true;
@@ -258,8 +382,7 @@ void scope_func_call(struct symbol_table_stack_t *stack, struct ast_func_call *f
 
 void scope_func_decl(struct symbol_table_stack_t *stack, struct ast_func_decl *func)
 {
-  // add_id_to_scope(stack, &func->id);
-
+  int num_params;
   for (struct ast_param *ptr = func->params; ptr!= NULL; ptr = ptr->next)
   {
     struct ast_term temp = {
@@ -267,9 +390,10 @@ void scope_func_decl(struct symbol_table_stack_t *stack, struct ast_func_decl *f
     };
     strcpy(temp.id.text, ptr->id.text);
     add_term_to_scope(stack, &temp);
+    num_params++;
   }
 
-  add_id_to_scope(stack, &func->id);
+  add_func_to_scope(stack, func);
   scope_body(stack, &func->body);
 }
 

@@ -10,8 +10,15 @@ struct symbol_table_t {
   int cur_idx;
 };
 
+struct func_table_t {
+  struct ast_func_decl **funcs;
+  int capacity;
+  int cur_idx;
+};
+
 struct symbol_table_stack_t {
   struct symbol_table_t *stack;
+  struct func_table_t *func_stack;
   int cur_idx;
   int capacity;
 };
