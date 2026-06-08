@@ -904,6 +904,7 @@ void parse_line(
     }
     else if (parser_peek_n(tokens, 1).type ==  LEX_TOKEN_OPEN_BRACKET)
     {
+      printf("line is function call\n");
       line->type = AST_LINE_FUNC_CALL;
       parse_func_call(tokens, &line->func_call);
       parse_terminator(tokens);

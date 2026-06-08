@@ -45,15 +45,17 @@ int main()
  
   
   struct ast_body *body = parse_lexer_tokens(&tokens, num_lines); 
-  printf("Done Parsing\n");
-  /*
   if (!scope_res(body))
   {
     printf("Failed to resolve variable\n");
     return -1;
   }
+  else 
+  {
+    printf("Scopes resolved\n");
+  }
 
-  
+  /*
   struct ir_stream ir_stream = {0};
   ir_ast(body, &ir_stream);
 

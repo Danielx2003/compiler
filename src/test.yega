@@ -1,15 +1,15 @@
 int add_two(int a, int b)
 {
-  int x = a + b;
+  int y = a + b;
 }
 
-int main(int a, int b)
+int main(int d, int c)
 {
   int x = 1 + 2;
+
   while (x == 1) 
   {
-    x = x + 1;
-    int test = add_two(1, 2);
+    int t = add_two(1, 2);
   }
 }
 
