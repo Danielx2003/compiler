@@ -162,7 +162,7 @@ void set_symbol_table_size(struct symbol_table_t *table, int size)
 
   table->symbols = temp;
 
-  for (int i = old_size; i < size; i++)
+  for (int i = table->cur_idx; i < size; i++)
   {
     // Each symbol is at most 32 bytes long
     table->symbols[i] = (char *)malloc(sizeof(char) * 32);
@@ -265,19 +265,32 @@ void create_symbol_table_stack(struct symbol_table_stack_t *stack)
 {
   if (stack->cur_idx+1 >= stack->capacity)
   {
+    printf("adjusted size\n");
     set_symbol_table_stack_size(stack, stack->capacity* 2);
   }
+
   stack->cur_idx++;
+  initialise_symbol_table(&stack->stack[stack->cur_idx]);
+
 }
 
 void pop_symbol_table_stack(struct symbol_table_stack_t *stack)
 {
   if (stack->cur_idx== 0)
   {
+    printf("stack empty. nothing to pop\n");
     return;
   }
 
-  memset(&stack->stack[stack->cur_idx], 0, sizeof(struct symbol_table_t));
+  // Free the memory here. As it is reallocated when the new stack is created.
+  for (int i = 0; i < stack->stack[stack->cur_idx].capacity; i++)
+  {
+    free(stack->stack[stack->cur_idx].symbols[i]);
+  }
+
+  free(stack->stack[stack->cur_idx].symbols);
+
+  // memset(&stack->stack[stack->cur_idx], 0, sizeof(struct symbol_table_t));
   stack->cur_idx--;
 }
 
@@ -319,6 +332,7 @@ void scope_term(struct symbol_table_stack_t *stack, struct ast_term *term)
     int args_count = 0;
     for (struct ast_arg *ptr =term->func_call.args; ptr != NULL; ptr=ptr->next)
     {
+      scope_term(stack, &ptr->term);
       args_count++;
     }
   }
@@ -381,7 +395,9 @@ void scope_func_call(struct symbol_table_stack_t *stack, struct ast_func_call *f
 }
 
 void scope_func_decl(struct symbol_table_stack_t *stack, struct ast_func_decl *func)
-{
+{ 
+  create_symbol_table_stack(stack);
+
   int num_params;
   for (struct ast_param *ptr = func->params; ptr!= NULL; ptr = ptr->next)
   {
@@ -395,6 +411,7 @@ void scope_func_decl(struct symbol_table_stack_t *stack, struct ast_func_decl *f
 
   add_func_to_scope(stack, func);
   scope_body(stack, &func->body);
+  pop_symbol_table_stack(stack);
 }
 
 void scope_line(struct symbol_table_stack_t *stack, struct ast_line *line)

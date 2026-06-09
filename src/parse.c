@@ -72,11 +72,15 @@ bool parse_term(
       
       // Consume ID
       parser_consume(tokens);
+
       // Consume Open Bracket
       parser_consume(tokens);
 
-      parse_args(tokens, &term->func_call.args);
-      
+      if (!parser_match(tokens, LEX_TOKEN_CLOSE_BRACKET))
+      {
+        parse_args(tokens, &term->func_call.args);
+      }
+
       if (!parser_match(tokens, LEX_TOKEN_CLOSE_BRACKET))
       {
         goto cleanup;
@@ -665,6 +669,7 @@ bool parse_args_next(struct lex_token_stream *tokens, struct ast_arg **arg)
     new_arg->term.constant = atoi(parser_peek(tokens).text);
     new_arg->term.type = AST_TERM_CONSTANT;
   }
+
   parser_consume(tokens);
 
   if (!parse_args_next(tokens, &new_arg->next))
@@ -713,10 +718,12 @@ bool parse_args(struct lex_token_stream *tokens, struct ast_arg **arg)
   if (parser_peek(tokens).type == LEX_TOKEN_ID)
   {
     strcpy((*arg)->term.id.text, parser_peek(tokens).text);
+    (*arg)->term.type = AST_TERM_ID;
   }
   else if (parser_peek(tokens).type == LEX_TOKEN_CONSTANT)
   {
     (*arg)->term.constant = atoi(parser_peek(tokens).text);
+    (*arg)->term.type = AST_TERM_CONSTANT;
   }
   
   parser_consume(tokens);
@@ -904,7 +911,6 @@ void parse_line(
     }
     else if (parser_peek_n(tokens, 1).type ==  LEX_TOKEN_OPEN_BRACKET)
     {
-      printf("line is function call\n");
       line->type = AST_LINE_FUNC_CALL;
       parse_func_call(tokens, &line->func_call);
       parse_terminator(tokens);
