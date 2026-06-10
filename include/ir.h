@@ -6,7 +6,15 @@ enum ir_ret_type {
   IR_RET_TYPE_TEMP,
   IR_RET_TYPE_ID,
   IR_RET_TYPE_CONSTANT,
+  IR_RET_TYPE_FUNC_CALL,
   IR_RET_TYPE_NULL
+};
+
+struct ir_func_call {
+  char text[32]; // name of function
+  int return_temp;
+  struct ir_term *args;
+  int num_args;
 };
 
 struct ir_ret {
@@ -15,6 +23,7 @@ struct ir_ret {
     int temp;
     int constant;
     char text[32];
+    struct ir_func_call func_call;
   };
 };
 
@@ -42,7 +51,8 @@ enum ir_term_type {
   IR_TERM_NULL,
   IR_TERM_TEMP,
   IR_TERM_ID,
-  IR_TERM_CONSTANT
+  IR_TERM_CONSTANT,
+  IR_TERM_FUNC_CALL
 };
 
 struct ir_term {
@@ -51,6 +61,7 @@ struct ir_term {
     int temp;
     int constant;
     char text[32];
+    struct ir_func_call func_call;
   };
 };
 
@@ -92,8 +103,10 @@ enum ir_item_type {
   IR_ITEM_CONDITIONAL,
   IR_ITEM_LABEL,
   IR_ITEM_GOTO,
-  IR_ITEM_FUNCTION_DEF,
-  IR_ITEM_FUNCTION_PARAMS
+  IR_ITEM_FUNC_DECL,
+  IR_ITEM_FUNC_PARAMS,
+  IR_ITEM_FUNC_CALL,
+  IR_ITEM_FUNC_RET
 };
 
 struct ir_item {
@@ -105,6 +118,7 @@ struct ir_item {
     struct ir_goto go_to;
     struct ir_function_def function_def;
     struct ir_params function_params;
+    struct ir_func_call func_call;
   };
 };
 
