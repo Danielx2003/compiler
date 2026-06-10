@@ -107,6 +107,13 @@ void print_ir_func_call(struct ir_func_call *func)
   printf("t%d=call %s\n", func->return_temp, func->text);
 }
 
+void print_ir_ret(struct ir_term *term)
+{
+  printf("ret ");
+  print_ir_term(term);
+  printf("\n");
+}
+
 void print_ir_item(struct ir_item *item)
 {
   switch(item->type)
@@ -130,7 +137,7 @@ void print_ir_item(struct ir_item *item)
       print_ir_function_params(&item->function_params);
       break;
     case IR_ITEM_FUNC_RET:
-      printf("ret\n"); // at the moment we haven't added return types, so we just return nothing for now
+      print_ir_ret(&item->ret);
       break;
     case IR_ITEM_FUNC_CALL:
       print_ir_func_call(&item->func_call);

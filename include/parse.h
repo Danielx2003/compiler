@@ -158,6 +158,11 @@ struct ast_expr {
   struct ast_expr_tail *tail;
 };
 
+struct ast_ret {
+  struct ast_expr expr;
+};
+
+
 struct ast_arg {
   struct ast_term term;
   struct ast_arg *next;
@@ -211,6 +216,7 @@ struct ast_line {
     struct ast_var_decl var_decl;
     struct ast_func_decl func_decl;
     struct ast_func_call func_call;
+    struct ast_ret ret;
   };
 };
 

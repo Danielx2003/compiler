@@ -124,7 +124,6 @@ void generate_func_params(struct ir_params *params)
     strcpy(term.text, params->params[i].text);
     try_register_term(&term);
     create_instruction_term_register(ASM_INSTR_MOV, &term, ASM_CALL_ARGS_REGISTERS[i]);
-    // register term
   }
 }
 
@@ -142,6 +141,12 @@ void generate_func_call(struct ir_func_call *func)
   };
   try_register_term(&term);
   create_instruction_term_register(ASM_INSTR_MOV, &term, ASM_REGISTER_RAX);
+}
+
+void generate_ret(struct ir_term *term)
+{
+  create_instruction_register_term(ASM_INSTR_MOV, ASM_REGISTER_RAX, term);
+  fprintf(file, "ret\n");
 }
 
 void generate_item(struct ir_item *item)
@@ -170,7 +175,7 @@ void generate_item(struct ir_item *item)
       generate_func_call(&item->func_call);
       break;
     case IR_ITEM_FUNC_RET:
-      fprintf(file, "ret\n");
+      generate_ret(&item->ret);
       break;
     default:
       printf("missed a ir_item type\n");
@@ -187,7 +192,7 @@ void generate_yasm(struct ir_stream *stream)
     return;
   }
   
-  char *str = "global _start\nsection .data\nsection .text\n_start:\npush rbp\nmov rbp, rsp\nsub rsp, 32\ncall main\nmov rax, 60\nsyscall\n";
+  char *str = "global _start\nsection .data\nsection .text\n_start:\npush rbp\nmov rbp, rsp\nsub rsp, 32\ncall main\nmov rdi, rax\nmov rax, 60\nsyscall\n";
   fwrite(str, sizeof(char), strlen(str), file);
 
   for (int i = 0; i < stream->total; i++)

@@ -119,6 +119,7 @@ struct ir_item {
     struct ir_function_def function_def;
     struct ir_params function_params;
     struct ir_func_call func_call;
+    struct ir_term ret; // switch to a new struct ir_func_ret (or similar), add a type to it
   };
 };
 

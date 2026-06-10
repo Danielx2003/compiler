@@ -814,6 +814,7 @@ void parse_func_call(struct lex_token_stream *tokens, struct ast_func_call *call
 {
   if (!parser_match(tokens, LEX_TOKEN_ID))
   {
+    printf("parse_func_call: Expected LEX_TOKEN_ID. Receievd: %d\n", parser_peek(tokens).type);
     goto cleanup;
   }
 
@@ -821,6 +822,7 @@ void parse_func_call(struct lex_token_stream *tokens, struct ast_func_call *call
 
   if (!parser_match(tokens, LEX_TOKEN_OPEN_BRACKET))
   {
+    printf("parse_func_call: Expected LEX_TOMEN_OPEN_BRACKET. Receievd: %d\n", parser_peek(tokens).type);
     goto cleanup;
   }
 
@@ -861,13 +863,42 @@ cleanup:
   return;
 }
 
+void parse_return(struct lex_token_stream *tokens, struct ast_ret *ret)
+{
+  if (
+    parser_match(tokens, LEX_TOKEN_ID)
+    || parser_match(tokens, LEX_TOKEN_CONSTANT)
+  )
+  {
+    parse_expr(tokens, &ret->expr);
+  }
+  else 
+  {
+    printf("parse_return: Expected LEX_TOKEN_ID or LEX_TOKEN_CONSTANT. Receievd: %d\n", parser_peek(tokens).type);
+    error = true;
+    while (
+      !parser_match(tokens, LEX_TOKEN_SEMI_COLON)
+      && !parser_match(tokens, LEX_TOKEN_CLOSE_BRACKET)
+      && !parser_match(tokens, LEX_TOKEN_EOF)
+    )
+    {
+      parser_consume(tokens);
+    }
+    if (parser_match(tokens, LEX_TOKEN_EOF))
+    {
+      return;
+    }
+    return;
+  }
+
+  parse_terminator(tokens);
+}
+
 void parse_line(
     struct lex_token_stream *tokens,
     struct ast_line *line
 )
 {
-  // struct parse_response resp = {0};
-
   if (parser_match(tokens, LEX_TOKEN_IF))
   {
     parser_consume(tokens);
@@ -913,13 +944,18 @@ void parse_line(
     {
       line->type = AST_LINE_FUNC_CALL;
       parse_func_call(tokens, &line->func_call);
-      parse_terminator(tokens);
     }
     else
     {
       parser_consume(tokens);
       goto cleanup;
     }
+  }
+  else if (parser_match(tokens, LEX_TOKEN_RETURN))
+  {
+    line->type = AST_LINE_RET;
+    parser_consume(tokens);
+    parse_return(tokens, &line->ret);
   }
   else 
   {

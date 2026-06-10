@@ -13,7 +13,8 @@ enum ast_line_type {
   AST_LINE_WHILE_LOOP,
   AST_LINE_VAR_DECL,
   AST_LINE_FUNC_DECL,
-  AST_LINE_FUNC_CALL
+  AST_LINE_FUNC_CALL,
+  AST_LINE_RET
 };
 
 enum ast_type {
