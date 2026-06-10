@@ -45,8 +45,42 @@ void ir_set_term_from_ast(struct ir_term *ir, struct ast_term *ast)
   else if (ast->type == AST_TERM_CONSTANT)
   {
     ir->type = IR_TERM_CONSTANT;
-    ir->constant = ast->constant.value;
+    ir->constant = ast->constant;
   }
+  else if (ast->type == AST_TERM_FUNC_CALL)
+  {
+    struct ir_item item = {
+      .type = IR_ITEM_FUNC_CALL
+    };
+
+    int arg_count = 0;
+    for (struct ast_arg *ptr = ast->func_call.args; ptr != NULL; ptr=ptr->next)
+    {
+      arg_count++;
+    }
+
+    item.func_call.args = (struct ir_term *)malloc(sizeof(struct ir_term) * arg_count);
+    struct ast_arg *ptr = ast->func_call.args;
+    for (int i = 0; i <arg_count; i++)
+    {
+      ir_set_term_from_ast(&item.func_call.args[i], &ptr->term);
+      ptr = ptr->next;
+    }
+
+    item.func_call.return_temp = ++temp_count;
+    strcpy(item.func_call.text, ast->func_call.id.text);
+    item.func_call.num_args = arg_count;
+    add_to_ir_list(&item);
+
+    ir->type = IR_TERM_TEMP;
+    ir->temp = item.func_call.return_temp;
+  }
+}
+
+void ir_set_id_from_ast(struct ir_term *ir, struct ast_id *id)
+{
+  ir->type = IR_TERM_ID;
+  strcpy(ir->text, id->text);
 }
 
 void ir_set_term_from_ret(struct ir_term *ir, struct ir_ret *ret)
@@ -66,6 +100,20 @@ void ir_set_term_from_ret(struct ir_term *ir, struct ir_ret *ret)
     ir->type = IR_TERM_CONSTANT;
     ir->constant = ret->constant;
   }
+  else if (ret->type == IR_RET_TYPE_FUNC_CALL)
+  {
+    struct ir_item item = {
+      .type = IR_ITEM_FUNC_CALL
+    };
+
+    memcpy(&item.func_call, &ret->func_call, sizeof(struct ir_func_call));
+    item.func_call.return_temp = ++temp_count;
+
+    add_to_ir_list(&item);
+
+    ir->type = IR_TERM_TEMP;
+    ir->temp = item.func_call.return_temp;
+  }
 }
 
 void ret_set_term_from_ast(struct ir_ret *ret, struct ast_term *ast)
@@ -78,7 +126,28 @@ void ret_set_term_from_ast(struct ir_ret *ret, struct ast_term *ast)
   else if (ast->type == AST_TERM_CONSTANT)
   {
     ret->type = IR_RET_TYPE_CONSTANT;
-    ret->constant = ast->constant.value;
+    ret->constant = ast->constant;
+  }
+  else if (ast->type == AST_TERM_FUNC_CALL)
+  {
+    ret->type = IR_RET_TYPE_FUNC_CALL;
+    strcpy(ret->func_call.text, ast->func_call.id.text);
+
+    int arg_count = 0;
+    for (struct ast_arg *ptr = ast->func_call.args; ptr != NULL; ptr=ptr->next)
+    {
+      arg_count++;
+    }
+
+    ret->func_call.args = (struct ir_term *)malloc(sizeof(struct ir_term) * arg_count);
+    ret->func_call.num_args = arg_count;
+
+    int i = 0;
+    for (struct ast_arg *ptr = ast->func_call.args; ptr != NULL; ptr=ptr->next)
+    {
+      ir_set_term_from_ast(&ret->func_call.args[i], &ptr->term);
+      i++;
+    }
   }
 }
 
@@ -86,6 +155,15 @@ void add_to_ir_list(struct ir_item *item)
 {
   memcpy(&ir_list[ir_idx], item, sizeof(struct ir_item));
   ir_idx++;
+}
+
+void ir_create_function_name(struct ast_id *id) // change 
+{
+  struct ir_item item = {
+    .type = IR_ITEM_FUNC_DECL
+  };
+  strcpy(item.function_def.name, id->text);
+  add_to_ir_list(&item);
 }
 
 void ir_create_if(int temp, int label)
@@ -165,14 +243,14 @@ struct ir_ret ir_expr(struct ast_expr *expr)
   return ret;
 }
 
-struct ir_ret ir_declaration(struct ast_declaration *decl)
+struct ir_ret ir_var_decl(struct ast_var_decl *decl)
 {
   struct ir_ret expr_ret = ir_expr(&decl->expr);
 
   struct ir_item item = {0};
   item.type = IR_ITEM_ASSIGN;
   
-  ir_set_term_from_ast(&item.assign.lhs, &decl->term);
+  ir_set_id_from_ast(&item.assign.lhs, &decl->id);
   ir_set_term_from_ret(&item.assign.rhs_1, &expr_ret);
   add_to_ir_list(&item);
 
@@ -186,7 +264,7 @@ struct ir_ret ir_assignment(struct ast_assignment *assign)
   struct ir_item item = {0};
   item.type = IR_ITEM_ASSIGN;
   
-  ir_set_term_from_ast(&item.assign.lhs, &assign->term);
+  ir_set_id_from_ast(&item.assign.lhs, &assign->id);
   ir_set_term_from_ret(&item.assign.rhs_1, &expr_ret);
   add_to_ir_list(&item);
 
@@ -238,49 +316,108 @@ void ir_condition_body(struct ast_body *body)
   }
 }
 
-void ir_conditional(struct ast_conditional *cond)
+void ir_while_loop(struct ast_while_loop *while_loop)
 {
-  int while_label = -1;
-  if (cond->type == AST_CONDITIONAL_WHILE)
-  {
-    while_label = ++label_count;
-    ir_create_label(while_label);
-  }
+  int while_label = ++label_count;
+  ir_create_label(while_label);
 
-
-  struct ir_ret condition_ret = ir_condition(&cond->condition);
+  struct ir_ret condition_ret = ir_condition(&while_loop->condition);
   int local_label = ++label_count;
   ir_create_if(condition_ret.temp, local_label);
 
-
-  ir_condition_body(&cond->body);
-  
-  if (cond->type == AST_CONDITIONAL_WHILE)
-  {
-    ir_create_goto(while_label);
-  }
-
+  ir_condition_body(&while_loop->body);
+  ir_create_goto(while_label);
   ir_create_label(local_label);
 
   // else - not in the language yet
+
+}
+
+void ir_if_stmt(struct ast_if_stmt *if_stmt)
+{
+  struct ir_ret condition_ret = ir_condition(&if_stmt->condition);
+  int local_label = ++label_count;
+  ir_create_if(condition_ret.temp, local_label);
+
+  ir_condition_body(&if_stmt->body);
+  ir_create_label(local_label);
+
+  // else - not in the language yet
+}
+
+void ir_func_decl(struct ast_func_decl *func)
+{
+  ir_create_function_name(&func->id);
+
+  int count = 0;
+  for (struct ast_param *ptr = func->params; ptr != NULL; ptr=ptr->next)
+  {
+    count++;
+  }
+
+  /*
+    this creates:
+    push a,
+    push b,
+    after the function definition - it should be before the function call
+    replace push with some way to harvest the parameters, and store them as we need them
+    */
+
+  struct ir_item item = {
+    .type = IR_ITEM_FUNC_PARAMS
+  };
+  item.function_params.params = (struct ir_param *)malloc(sizeof(struct ir_param) * count);
+  item.function_params.total = count;
+
+  int i = 0;
+  for (struct ast_param *ptr = func->params; ptr != NULL; ptr=ptr->next)
+  {
+    strcpy(item.function_params.params[i].text, ptr->id.text);
+    i++;
+  }
+  add_to_ir_list(&item);
+
+  ir_condition_body(&func->body);
+
+}
+
+void ir_ret(struct ast_ret *ret)
+{
+  struct ir_item item = {
+    .type = IR_ITEM_FUNC_RET
+  };
+
+  struct ir_ret expr_ret = ir_expr(&ret->expr);
+  ir_set_term_from_ret(&item.ret, &expr_ret);
+  add_to_ir_list(&item);
 }
 
 void ir_line(struct ast_line *line)
 {
   switch(line->type)
   {
-    case AST_LINE_CONDITIONAL:
-      ir_conditional(&line->conditional);
+    case AST_LINE_IF_STMT:
+      ir_if_stmt(&line->if_stmt);
       break;
     case AST_LINE_ASSIGNMENT:
       ir_assignment(&line->assignment);
       break;
-    case AST_LINE_DECLARATION:
-      ir_declaration(&line->declaration);
+    case AST_LINE_VAR_DECL:
+      ir_var_decl(&line->var_decl);
       break;
+    case AST_LINE_FUNC_DECL:
+      ir_func_decl(&line->func_decl);
+      break;
+    case AST_LINE_WHILE_LOOP:
+      ir_while_loop(&line->while_loop);
+      break;
+    case AST_LINE_FUNC_CALL:
+      printf("not implemented yet\n");
+      break;
+    case AST_LINE_RET:
+      ir_ret(&line->ret);
   }
 }
-
 
 void ir_ast(struct ast_body *root, struct ir_stream *stream)
 {

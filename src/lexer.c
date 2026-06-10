@@ -40,6 +40,8 @@ enum lex_token_type get_token_type_from_text(char *buf)
   if (strcmp(buf, "int") == 0) { return LEX_TOKEN_INT; }
   if (strcmp(buf, "if") == 0) { return LEX_TOKEN_IF; }
   if (strcmp(buf, "while") == 0) { return LEX_TOKEN_WHILE; }
+  if (strcmp(buf, "func") == 0) { return LEX_TOKEN_FUNCTION; }
+  if (strcmp(buf, "call") == 0) { return LEX_TOKEN_CALL; }
   if (strcmp(buf, "==") == 0) { return LEX_TOKEN_EQUIV; }
   if (strcmp(buf, ">") == 0) { return LEX_TOKEN_GREATER_THAN; }
   if (strcmp(buf, "<") == 0) { return LEX_TOKEN_GREATER_THAN; }
@@ -51,6 +53,7 @@ enum lex_token_type get_token_type_from_text(char *buf)
   if (strcmp(buf, ";") == 0) { return LEX_TOKEN_SEMI_COLON; }
   if (strcmp(buf, "}") == 0) { return LEX_TOKEN_CLOSE_SCOPE; }
   if (strcmp(buf, "{") == 0) { return LEX_TOKEN_OPEN_SCOPE; }
+  if (strcmp(buf, ",") == 0) { return LEX_TOKEN_COMMA; }
 
   switch(buf[0])
   {
@@ -116,6 +119,7 @@ int lex_tokenize_stream(
       case ';':
       case '}':
       case '{':
+      case ',':
         tokenize(tokens, c, stream);
 
         // start = cur

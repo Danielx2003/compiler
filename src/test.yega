@@ -1,6 +1,12 @@
-int b = 1 + 2;
-while (b == 3)
+int add_two(int a, int b)
 {
-  b = b + 1;
-  int c = 50;
+  return a + b;
 }
+
+int main()
+{
+  int x = 1; 
+  int y = 11;
+  return 5 + add_two(x, y) + 5;
+}
+

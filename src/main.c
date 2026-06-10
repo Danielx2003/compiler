@@ -37,30 +37,36 @@ int main()
     &file_stream
   );
  
+  /*
   for (int i = 0; i < tokens.cur_idx ; i++)
   {
     printf("Token Type: %d --- Text: %s\n", tokens.data[i].type, tokens.data[i].text);
   }
   printf("\n");
+  */
  
   
-  struct ast_body *body = parse_lexer_tokens(&tokens, num_lines);
-  
+  struct ast_body *body = parse_lexer_tokens(&tokens, num_lines); 
   if (!scope_res(body))
   {
     printf("Failed to resolve variable\n");
     return -1;
   }
+  else 
+  {
+    printf("Scopes resolved\n");
+  }
 
   
   struct ir_stream ir_stream = {0};
   ir_ast(body, &ir_stream);
-
+  
   for (int i = 0; i < ir_stream.total; i++)
   {
     print_ir_item(&ir_stream.items[i]);
   }
   printf("\n");
+  
 
   generate_yasm(&ir_stream);
   

@@ -29,6 +29,9 @@ void print_ir_term(struct ir_term *term)
     case IR_TERM_CONSTANT:
       printf("%d", term->constant);
       break;
+    case IR_TERM_FUNC_CALL:
+      printf("func call\n");
+      break;
   }
 }
 
@@ -79,6 +82,38 @@ void print_ir_conditional(struct ir_conditional *cond)
   printf("ifz t%d goto L%d\n", cond->temp, cond->label);
 }
 
+void print_ir_function_def(struct ir_function_def *func)
+{
+  printf("%s (func_def):\n", func->name);
+}
+
+void print_ir_function_params(struct ir_params *params)
+{
+  for (int i = 0; i < params->total; i++)
+  {
+    printf("arg %s\n", params->params[i].text);
+  }
+}
+
+void print_ir_func_call(struct ir_func_call *func)
+{
+  for (int i = 0; i < func->num_args; i++)
+  {
+    printf("push ");
+    print_ir_term(&func->args[i]);
+    printf("\n");
+  }
+
+  printf("t%d=call %s\n", func->return_temp, func->text);
+}
+
+void print_ir_ret(struct ir_term *term)
+{
+  printf("ret ");
+  print_ir_term(term);
+  printf("\n");
+}
+
 void print_ir_item(struct ir_item *item)
 {
   switch(item->type)
@@ -94,5 +129,20 @@ void print_ir_item(struct ir_item *item)
       break;
     case IR_ITEM_GOTO:
       print_ir_goto(&item->go_to);
+      break;
+    case IR_ITEM_FUNC_DECL:
+      print_ir_function_def(&item->function_def);
+      break;
+    case IR_ITEM_FUNC_PARAMS:
+      print_ir_function_params(&item->function_params);
+      break;
+    case IR_ITEM_FUNC_RET:
+      print_ir_ret(&item->ret);
+      break;
+    case IR_ITEM_FUNC_CALL:
+      print_ir_func_call(&item->func_call);
+      break;
+    default:
+      printf("missed a type: %d\n", item->type);
   }
 }

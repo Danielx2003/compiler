@@ -9,6 +9,14 @@ int offset = 8;
 int OFFSETS[256];
 FILE *file;
 
+const enum asm_register ASM_CALL_ARGS_REGISTERS[6] = {
+  ASM_REGISTER_RDI,
+  ASM_REGISTER_RSI,
+  ASM_REGISTER_RDX,
+  ASM_REGISTER_RCX,
+  ASM_REGISTER_R8,
+  ASM_REGISTER_R9
+};
 
 char *ir_term_to_register(struct ir_term *term)
 {
@@ -101,6 +109,46 @@ void generate_assign(struct ir_assign *assign)
   
 }
 
+void generate_func_decl(struct ir_function_def *decl)
+{
+  fprintf(file, "%s:\n", decl->name);
+}
+
+void generate_func_params(struct ir_params *params)
+{
+  for (int i = 0; i < params->total; i++)
+  {
+    struct ir_term term = {
+      .type = IR_TERM_ID
+    };
+    strcpy(term.text, params->params[i].text);
+    try_register_term(&term);
+    create_instruction_term_register(ASM_INSTR_MOV, &term, ASM_CALL_ARGS_REGISTERS[i]);
+  }
+}
+
+void generate_func_call(struct ir_func_call *func)
+{
+  for (int i = 0; i < func->num_args; i++)
+  {
+    create_instruction_register_term(ASM_INSTR_MOV, ASM_CALL_ARGS_REGISTERS[i], &func->args[i]);
+  }
+
+  fprintf(file, "call %s\n", func->text);
+  struct ir_term term = {
+    .type = IR_TERM_TEMP,
+    .temp = func->return_temp
+  };
+  try_register_term(&term);
+  create_instruction_term_register(ASM_INSTR_MOV, &term, ASM_REGISTER_RAX);
+}
+
+void generate_ret(struct ir_term *term)
+{
+  create_instruction_register_term(ASM_INSTR_MOV, ASM_REGISTER_RAX, term);
+  fprintf(file, "ret\n");
+}
+
 void generate_item(struct ir_item *item)
 {
   switch(item->type)
@@ -116,6 +164,22 @@ void generate_item(struct ir_item *item)
       break;
     case IR_ITEM_GOTO:
       generate_goto(&item->go_to);
+      break;
+    case IR_ITEM_FUNC_DECL:
+      generate_func_decl(&item->function_def);
+      break;
+    case IR_ITEM_FUNC_PARAMS:
+      generate_func_params(&item->function_params);
+      break;
+    case IR_ITEM_FUNC_CALL:
+      generate_func_call(&item->func_call);
+      break;
+    case IR_ITEM_FUNC_RET:
+      generate_ret(&item->ret);
+      break;
+    default:
+      printf("missed a ir_item type\n");
+      break;
   }
 }
 
@@ -128,16 +192,13 @@ void generate_yasm(struct ir_stream *stream)
     return;
   }
   
-  char *str = "global _start\nsection .data\nsection .text\n_start:\npush rbp\nmov rbp, rsp\nsub rsp, 32\n";
+  char *str = "global _start\nsection .data\nsection .text\n_start:\npush rbp\nmov rbp, rsp\nsub rsp, 32\ncall main\nmov rdi, rax\nmov rax, 60\nsyscall\n";
   fwrite(str, sizeof(char), strlen(str), file);
 
   for (int i = 0; i < stream->total; i++)
   {
     generate_item(&stream->items[i]);
   }
-
-  str = "mov rax, 60\nsyscall\n";
-  fwrite(str, sizeof(char), strlen(str), file);
 
   fclose(file);
 }
