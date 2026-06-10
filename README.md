@@ -1,4 +1,4 @@
-### Toy C Compiler ###
+# Toy C Compiler #
 
 
 A toy C compiler, compiling to x86 Assembly.
@@ -16,29 +16,28 @@ A toy C compiler, compiling to x86 Assembly.
 ## Future Work ##
 
 
-# Types #
+### Types ###
 
 The current implementation is restricted to `int` only, eliminating the need for type checking.
 Future work will look to address this, by introducing `char`, `float`, and other primitive datatypes found in C.
 
-# Register Allocation #
+### Register Allocation ###
 
 For simplicity, all variables are stored on the stack. This allowed for quick iterations to produce working assembly. Replacing this methodology with Linear Scan Register Allocation, or ideally Graph Colouring, will improve code performance.
 
-# Optimisations #
+### Optimisations ###
 
 Zero code-optimisations are implemented. The assembly emitted is far-from optimal.
 
-# Preprocessing #
+### Preprocessing ###
 
 No macros (`#define`) are supported yet.
 
-# Functions # 
+### Functions ###
 
 Despite the misleading return type `int add_two(int a, intb)`, functions are not equipped with the ability to return values yet, as the `return` keyword does not exist. 
 
 ## Using the compiler ##
-
 
 1. Create a simple c program `input.c` 
 
