@@ -141,10 +141,6 @@ struct ast_term {
   };
 };
 
-struct ast_ret {
-  struct ast_term term;
-};
-
 struct ast_param {
   enum ast_type type;
   struct ast_id id;
@@ -161,6 +157,11 @@ struct ast_expr {
   struct ast_term term;
   struct ast_expr_tail *tail;
 };
+
+struct ast_ret {
+  struct ast_expr expr;
+};
+
 
 struct ast_arg {
   struct ast_term term;

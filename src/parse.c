@@ -814,6 +814,7 @@ void parse_func_call(struct lex_token_stream *tokens, struct ast_func_call *call
 {
   if (!parser_match(tokens, LEX_TOKEN_ID))
   {
+    printf("parse_func_call: Expected LEX_TOKEN_ID. Receievd: %d\n", parser_peek(tokens).type);
     goto cleanup;
   }
 
@@ -821,6 +822,7 @@ void parse_func_call(struct lex_token_stream *tokens, struct ast_func_call *call
 
   if (!parser_match(tokens, LEX_TOKEN_OPEN_BRACKET))
   {
+    printf("parse_func_call: Expected LEX_TOMEN_OPEN_BRACKET. Receievd: %d\n", parser_peek(tokens).type);
     goto cleanup;
   }
 
@@ -863,18 +865,16 @@ cleanup:
 
 void parse_return(struct lex_token_stream *tokens, struct ast_ret *ret)
 {
-  if (parser_match(tokens, LEX_TOKEN_ID))
+  if (
+    parser_match(tokens, LEX_TOKEN_ID)
+    || parser_match(tokens, LEX_TOKEN_CONSTANT)
+  )
   {
-    ret->term.type = AST_TERM_ID;
-    strcpy(ret->term.id.text, parser_peek(tokens).text); 
-  }
-  else if (parser_match(tokens, LEX_TOKEN_CONSTANT))
-  {
-    ret->term.type = AST_TERM_CONSTANT;
-    ret->term.constant = atoi(parser_peek(tokens).text);
+    parse_expr(tokens, &ret->expr);
   }
   else 
   {
+    printf("parse_return: Expected LEX_TOKEN_ID or LEX_TOKEN_CONSTANT. Receievd: %d\n", parser_peek(tokens).type);
     error = true;
     while (
       !parser_match(tokens, LEX_TOKEN_SEMI_COLON)
@@ -891,7 +891,6 @@ void parse_return(struct lex_token_stream *tokens, struct ast_ret *ret)
     return;
   }
 
-  parser_consume(tokens);
   parse_terminator(tokens);
 }
 
@@ -945,7 +944,6 @@ void parse_line(
     {
       line->type = AST_LINE_FUNC_CALL;
       parse_func_call(tokens, &line->func_call);
-      parse_terminator(tokens);
     }
     else
     {

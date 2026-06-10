@@ -416,7 +416,7 @@ void scope_func_decl(struct symbol_table_stack_t *stack, struct ast_func_decl *f
 
 void scope_ret(struct symbol_table_stack_t *stack, struct ast_ret *ret)
 {
-  scope_term(stack, &ret->term);
+  scope_expr(stack, &ret->expr);
 }
 
 void scope_line(struct symbol_table_stack_t *stack, struct ast_line *line)

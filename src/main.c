@@ -57,7 +57,7 @@ int main()
     printf("Scopes resolved\n");
   }
 
-
+  
   struct ir_stream ir_stream = {0};
   ir_ast(body, &ir_stream);
   
@@ -69,6 +69,7 @@ int main()
   
 
   generate_yasm(&ir_stream);
+  
   // free(root);
   // free(lexer_output.tokens); 
 }

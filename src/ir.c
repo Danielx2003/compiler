@@ -386,7 +386,9 @@ void ir_ret(struct ast_ret *ret)
   struct ir_item item = {
     .type = IR_ITEM_FUNC_RET
   };
-  ir_set_term_from_ast(&item.ret, &ret->term);
+
+  struct ir_ret expr_ret = ir_expr(&ret->expr);
+  ir_set_term_from_ret(&item.ret, &expr_ret);
   add_to_ir_list(&item);
 }
 
