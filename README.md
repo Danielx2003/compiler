@@ -67,8 +67,6 @@ int main()
 }
 ```
 
-2. Compile the program
-
-```make```
+2. Compile the program using `make`
 
 3. View the output in `test.asm`
