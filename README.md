@@ -1,13 +1,11 @@
 ### Toy C Compiler ###
 
----
 
 A toy C compiler, compiling to x86 Assembly.
 
 
 ## Features ##
 
----
 
 * Declarations [-]
 * Assignments [-]
@@ -17,7 +15,6 @@ A toy C compiler, compiling to x86 Assembly.
 
 ## Future Work ##
 
----
 
 # Types #
 
@@ -42,12 +39,12 @@ Despite the misleading return type `int add_two(int a, intb)`, functions are not
 
 ## Using the compiler ##
 
----
 
 1. Create a simple c program `input.c` 
 
 
-```int add_two(int a, int b)
+```
+int add_two(int a, int b)
 {
   int z = a + b;
 }
