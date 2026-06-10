@@ -4,7 +4,6 @@
 
 A toy C compiler, compiling to x86 Assembly.
 
----
 
 ## Features ##
 
@@ -15,8 +14,6 @@ A toy C compiler, compiling to x86 Assembly.
 * If Statements [-]
 * While Loops [-]
 * Function Calls [-]
-
----
 
 ## Future Work ##
 
@@ -43,15 +40,12 @@ No macros (`#define`) are supported yet.
 
 Despite the misleading return type `int add_two(int a, intb)`, functions are not equipped with the ability to return values yet, as the `return` keyword does not exist. 
 
----
-
 ## Using the compiler ##
 
 ---
 
 1. Create a simple c program `input.c` 
 
-```
 
 ```int add_two(int a, int b)
 {
@@ -66,12 +60,11 @@ int main()
   {
     x = x + 1;
   }
-}```
+}
+```
 
 2. Compile the program
 
-````
-````
 ```make```
 
 3. View the output in `test.asm`
