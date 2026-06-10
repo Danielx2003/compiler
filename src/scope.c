@@ -414,6 +414,11 @@ void scope_func_decl(struct symbol_table_stack_t *stack, struct ast_func_decl *f
   pop_symbol_table_stack(stack);
 }
 
+void scope_ret(struct symbol_table_stack_t *stack, struct ast_ret *ret)
+{
+  scope_term(stack, &ret->term);
+}
+
 void scope_line(struct symbol_table_stack_t *stack, struct ast_line *line)
 {
   if (line->type == AST_LINE_ASSIGNMENT)
@@ -440,7 +445,11 @@ void scope_line(struct symbol_table_stack_t *stack, struct ast_line *line)
   {
     scope_func_call(stack, &line->func_call);
   }
-  else 
+  else if (line->type == AST_LINE_RET)
+  {
+    scope_ret(stack, &line->ret);
+  }
+  else  
   {
     printf("could not match to a line type\n");
   }

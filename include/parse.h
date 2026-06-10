@@ -141,6 +141,10 @@ struct ast_term {
   };
 };
 
+struct ast_ret {
+  struct ast_term term;
+};
+
 struct ast_param {
   enum ast_type type;
   struct ast_id id;
@@ -211,6 +215,7 @@ struct ast_line {
     struct ast_var_decl var_decl;
     struct ast_func_decl func_decl;
     struct ast_func_call func_call;
+    struct ast_ret ret;
   };
 };
 

@@ -379,10 +379,15 @@ void ir_func_decl(struct ast_func_decl *func)
 
   ir_condition_body(&func->body);
 
-  struct ir_item item_ret = {
+}
+
+void ir_ret(struct ast_ret *ret)
+{
+  struct ir_item item = {
     .type = IR_ITEM_FUNC_RET
   };
-  add_to_ir_list(&item_ret);
+  ir_set_term_from_ast(&item.ret, &ret->term);
+  add_to_ir_list(&item);
 }
 
 void ir_line(struct ast_line *line)
@@ -407,6 +412,8 @@ void ir_line(struct ast_line *line)
     case AST_LINE_FUNC_CALL:
       printf("not implemented yet\n");
       break;
+    case AST_LINE_RET:
+      ir_ret(&line->ret);
   }
 }
 

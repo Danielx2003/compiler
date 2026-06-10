@@ -861,13 +861,45 @@ cleanup:
   return;
 }
 
+void parse_return(struct lex_token_stream *tokens, struct ast_ret *ret)
+{
+  if (parser_match(tokens, LEX_TOKEN_ID))
+  {
+    ret->term.type = AST_TERM_ID;
+    strcpy(ret->term.id.text, parser_peek(tokens).text); 
+  }
+  else if (parser_match(tokens, LEX_TOKEN_CONSTANT))
+  {
+    ret->term.type = AST_TERM_CONSTANT;
+    ret->term.constant = atoi(parser_peek(tokens).text);
+  }
+  else 
+  {
+    error = true;
+    while (
+      !parser_match(tokens, LEX_TOKEN_SEMI_COLON)
+      && !parser_match(tokens, LEX_TOKEN_CLOSE_BRACKET)
+      && !parser_match(tokens, LEX_TOKEN_EOF)
+    )
+    {
+      parser_consume(tokens);
+    }
+    if (parser_match(tokens, LEX_TOKEN_EOF))
+    {
+      return;
+    }
+    return;
+  }
+
+  parser_consume(tokens);
+  parse_terminator(tokens);
+}
+
 void parse_line(
     struct lex_token_stream *tokens,
     struct ast_line *line
 )
 {
-  // struct parse_response resp = {0};
-
   if (parser_match(tokens, LEX_TOKEN_IF))
   {
     parser_consume(tokens);
@@ -920,6 +952,12 @@ void parse_line(
       parser_consume(tokens);
       goto cleanup;
     }
+  }
+  else if (parser_match(tokens, LEX_TOKEN_RETURN))
+  {
+    line->type = AST_LINE_RET;
+    parser_consume(tokens);
+    parse_return(tokens, &line->ret);
   }
   else 
   {

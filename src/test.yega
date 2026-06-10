@@ -1,14 +1,11 @@
 int add_two(int a, int b)
 {
-  int z = a + b;
+  return a + b;
 }
 
 int main()
 {
-  int x = 1 + add_two(1, 1) + 2;
-  if (x == 5)
-  {
-    int y = add_two(x, 5);
-  }
+  int x = 5 + add_two(1, 1) + 5;
+  return x;
 }
 
