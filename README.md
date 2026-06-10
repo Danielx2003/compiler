@@ -33,10 +33,6 @@ Zero code-optimisations are implemented. The assembly emitted is far-from optima
 
 No macros (`#define`) are supported yet.
 
-### Functions ###
-
-Despite the misleading return type `int add_two(int a, intb)`, functions are not equipped with the ability to return values yet, as the `return` keyword does not exist.
-
 ### Arithmetic ###
 
 The mathematical capability of the compiler is limited to just addition (`+`). 
