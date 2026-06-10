@@ -102,14 +102,6 @@ void ir_set_term_from_ret(struct ir_term *ir, struct ir_ret *ret)
   }
   else if (ret->type == IR_RET_TYPE_FUNC_CALL)
   {
-    // rather than copying the func_call struct
-    // add a ir_item_func_call to the list
-    // store the return result in a temp (say t3)
-    // then set this type to be IR_TERM_TEMP 
-    // and set the temp to be t3 
-    // this means we call the function before, store its result, and then use the result where needed (e.g. an expression)
-    //
-
     struct ir_item item = {
       .type = IR_ITEM_FUNC_CALL
     };
@@ -196,28 +188,6 @@ struct ir_ret ir_expr_tail(struct ast_expr_tail *tail)
   }
 
   struct ir_ret tail_ret = ir_expr_tail(tail->next);
-
-
-  if (tail->term.type == AST_TERM_FUNC_CALL)
-  {
-    // when we have a function call as a term, i need to do the function call, and then store the return value in a temp
-    // e.g. int x = 1 + add_two(1, 2);
-    // we should yield something akin to
-    //
-    // mov rdi, 1 ; mov arg 1 into the first slot
-    // mov rsi, 2 ; arg 2 into the second
-    // call add_two ; call our function
-    // mov tx, rax ; mov the return value into a temporary
-    //
-    // TAC: - or a similar result
-    // push 1
-    // push 2
-    // t1 = call add_two
-    // t2 = 1 + t1
-    // x = t2
-    //
-    // printf("tail term is a function call\n");
-  }
 
   if (tail->next == NULL)
   {
