@@ -7,11 +7,11 @@ A toy C compiler, compiling to x86 Assembly.
 ## Features ##
 
 
-* Declarations [x]
-* Assignments [x]
-* If Statements [x]
-* While Loops [x]
-* Function Calls [x]
+- [x] Declarations
+- [x] Assignments
+- [x] If Statements
+- [x] While Loops
+- [x] Function Calls
 
 ## Future Work ##
 
